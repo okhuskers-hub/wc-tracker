@@ -1,0 +1,2233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1428">
+<title>Willow Canyon — Game Day Call Tracker</title>
+<meta name="build" content="v10.3 · three-segment voice">
+<style>
+:root{
+  --field:#0A1428;
+  --panel:#122340;
+  --panel2:#0E1B33;
+  --line:#22395F;
+  --silver:#9FB0C6;
+  --chalk:#EEF3FA;
+  --navy:#16305A;
+  --go:#39D083;
+  --stop:#FF5B62;
+  --gold:#F4B740;
+  --r:10px;
+  --disp: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--field);color:var(--chalk);
+  font-family:var(--disp);font-variant-numeric:tabular-nums;overscroll-behavior-y:contain}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+button,input,select{font-family:inherit;font-variant-numeric:tabular-nums}
+.wrap{max-width:760px;margin:0 auto;padding:0 10px 10px}
+.actbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:linear-gradient(180deg,rgba(10,20,40,.7),#0A1428 30%);
+  border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
+.actin{max-width:760px;margin:0 auto;display:flex;gap:6px;align-items:stretch}
+.actin .logbtn{margin:0;flex:1 1 auto;padding:15px 10px;font-size:17px}
+.actmini{display:grid;grid-template-columns:repeat(2,auto);gap:5px;flex:0 0 auto}
+.actmini button{background:var(--panel);border:1px solid var(--line);color:var(--silver);border-radius:8px;
+  font-size:10px;font-weight:800;letter-spacing:.05em;padding:6px 9px;cursor:pointer;white-space:nowrap}
+.actmini button.gold{border-color:var(--gold);color:var(--gold)}
+@media print{.actbar{display:none!important}}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,#0A1428 70%,rgba(10,20,40,.92));
+  padding:8px 10px 6px;border-bottom:1px solid var(--line)}
+.topin{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.brand{order:1;font-size:11px;letter-spacing:.18em;font-weight:800;color:var(--silver);white-space:nowrap}
+.brand b{color:var(--gold)}
+.oppin{flex:1 1 130px;min-width:100px;order:2;background:var(--panel);border:1px solid var(--line);
+  border-radius:6px;color:var(--chalk);font-size:13px;font-weight:800;padding:6px 8px;outline:none;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,#6C83A6 50%),linear-gradient(135deg,#6C83A6 50%,transparent 50%);
+  background-position:calc(100% - 13px) 52%,calc(100% - 8px) 52%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:24px}
+.oppin option{background:#122340;color:#EEF3FA}
+.oppin.unset{color:#6C83A6}
+.sbox{order:4;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800}
+.sbox .s{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 7px;
+  color:var(--chalk);cursor:pointer;min-width:34px;text-align:center}
+.sbox .s small{display:block;font-size:8px;letter-spacing:.1em;color:var(--silver);font-weight:700}
+.qtr{display:flex;gap:3px;order:3;margin-left:auto}
+.qtr button{background:var(--panel);border:1px solid var(--line);color:var(--silver);
+  border-radius:6px;font-size:11px;font-weight:800;padding:4px 7px;cursor:pointer}
+.qtr button[aria-pressed=true]{background:var(--gold);color:#12203A;border-color:var(--gold)}
+
+/* ---------- signature: chain strip ---------- */
+.strip{margin:10px 0 6px;padding:14px 12px 10px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:var(--r);position:relative;overflow:hidden}
+.turf{position:relative;height:52px;border-radius:6px;cursor:grab;touch-action:none;
+  background:repeating-linear-gradient(90deg,#15294a 0,#15294a 9.98%,#1b3157 10%,#1b3157 10%)}
+.turf .tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(159,176,198,.28)}
+.turf .num{position:absolute;bottom:2px;transform:translateX(-50%);font-size:9px;color:#63799B;font-weight:700}
+.ez{position:absolute;top:0;bottom:0;width:0;background:rgba(244,183,64,.07)}
+.gained{position:absolute;top:0;bottom:0;background:rgba(57,208,131,.28);border-left:1px solid var(--go);border-right:1px solid var(--go)}
+.lost{position:absolute;top:0;bottom:0;background:rgba(255,91,98,.28)}
+.togain{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--gold);border-radius:2px;
+  box-shadow:0 0 8px rgba(244,183,64,.6)}
+.ball{position:absolute;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;
+  background:var(--chalk);border:2px solid var(--navy);box-shadow:0 0 0 4px rgba(238,243,250,.16);
+  transition:left .35s cubic-bezier(.2,.8,.2,1);cursor:grab}
+.turf.drag{cursor:grabbing} .turf.drag .ball{transition:none;cursor:grabbing;
+  box-shadow:0 0 0 8px rgba(244,183,64,.25);border-color:var(--gold)}
+.striphint{font-size:9px;letter-spacing:.12em;color:#4E6488;font-weight:700;text-align:center;margin-top:7px}
+.striplbl{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.16em;
+  color:#5B7196;font-weight:800;margin-bottom:6px}
+
+/* ---------- situation ---------- */
+.sit{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:8px 2px 0}
+.sitbtn{background:transparent;border:none;padding:2px 4px;margin:0 -4px;border-radius:7px;
+  color:inherit;cursor:pointer;text-align:left;border-bottom:1px dashed #2C4571}
+.sitbtn:active{background:var(--panel)}
+.dd{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.dd em{font-style:normal;color:var(--gold)}
+.at{font-size:15px;font-weight:800;color:var(--silver)}
+.meta{margin-left:auto;font-size:10px;letter-spacing:.14em;color:#5B7196;font-weight:800}
+
+/* ---------- cards ---------- */
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px;margin-top:10px}
+.lab{font-size:9px;letter-spacing:.18em;color:#6C83A6;font-weight:800;margin:0 0 6px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--silver);
+  border-radius:8px;padding:9px 12px;font-size:14px;font-weight:800;cursor:pointer;
+  flex:0 0 auto;min-height:40px;display:flex;align-items:center;justify-content:center}
+.chip:active{transform:scale(.97)}
+.chip[aria-pressed=true]{background:var(--chalk);color:#0F1E38;border-color:var(--chalk)}
+.chip.sm{padding:7px 10px;font-size:12px;min-height:32px}
+.chip.tag[aria-pressed=true]{background:var(--gold);color:#12203A;border-color:var(--gold)}
+.chip.grow{flex:1 1 auto}
+
+.calldisp{display:flex;align-items:center;gap:8px;background:var(--navy);border:1px solid #2B4E86;
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;min-height:48px}
+.calldisp .txt{font-size:17px;font-weight:900;letter-spacing:-.01em;flex:1;line-height:1.2}
+.calldisp .txt.empty{color:#6C83A6;font-weight:700;font-size:14px}
+.calldisp button{background:transparent;border:1px solid #2B4E86;color:var(--silver);
+  border-radius:6px;font-size:11px;font-weight:800;padding:6px 9px;cursor:pointer}
+
+.tabs{display:flex;gap:4px;margin-bottom:7px}
+.tabs button{flex:1;background:transparent;border:none;border-bottom:2px solid var(--line);
+  color:#6C83A6;font-size:11px;font-weight:800;letter-spacing:.1em;padding:6px 2px;cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--chalk);border-color:var(--gold)}
+.srch{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--chalk);font-size:14px;padding:9px 11px;outline:none;margin-bottom:7px}
+.srch::placeholder{color:#5B7196}
+.plays{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;
+  max-height:210px;overflow:auto;-webkit-overflow-scrolling:touch}
+.plays .chip{width:100%;text-align:center;font-size:13px;padding:11px 6px}
+
+/* ---------- spot pad ---------- */
+.padgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.padgrid button{background:var(--panel);border:1px solid var(--line);color:var(--chalk);
+  border-radius:8px;font-size:22px;font-weight:800;padding:13px 0;cursor:pointer}
+.padgrid button:active{background:var(--navy)}
+.padgrid button.util{font-size:12px;font-weight:800;color:var(--silver);letter-spacing:.06em}
+.spotread{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:10px 12px;min-height:56px}
+.spotread .v{font-size:26px;font-weight:900;letter-spacing:-.02em}
+.spotread .v.dim{color:#5B7196;font-size:17px;font-weight:700}
+.gainpill{margin-left:auto;font-size:22px;font-weight:900;padding:4px 12px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--line);color:#6C83A6}
+.gainpill.pos{color:var(--go);border-color:rgba(57,208,131,.45);background:rgba(57,208,131,.1)}
+.gainpill.neg{color:var(--stop);border-color:rgba(255,91,98,.45);background:rgba(255,91,98,.1)}
+
+.side{display:flex;gap:6px;margin-bottom:7px}
+.side button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--silver);
+  border-radius:8px;font-size:13px;font-weight:800;padding:10px;cursor:pointer;letter-spacing:.06em}
+.side button[aria-pressed=true]{background:var(--chalk);color:#0F1E38;border-color:var(--chalk)}
+
+.cmdbar{background:var(--panel2);border:1px solid var(--gold);border-radius:var(--r);padding:10px;margin-top:10px}
+.cmdrow{display:flex;gap:6px;align-items:stretch}
+.cmdin{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chalk);
+  font-size:17px;font-weight:700;padding:12px 12px;outline:none;min-width:0}
+.cmdin::placeholder{color:#5B7196;font-weight:600}
+.cmdin:focus{border-color:var(--gold)}
+.micbtn{flex:0 0 64px;background:var(--panel);border:1px solid var(--line);color:var(--silver);border-radius:8px;
+  font-size:11px;font-weight:900;letter-spacing:.06em;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.micbtn[data-on=true]{background:var(--stop);color:#fff;border-color:var(--stop);animation:pulse 1s infinite}
+.micbtn[data-live=true]{background:var(--go);color:#06301C;border-color:var(--go)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,91,98,.25)}}
+.segs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.seg{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px 9px;cursor:pointer;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;text-align:left;min-height:84px;position:relative}
+.seg .n{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--chalk);
+  font-size:11px;font-weight:900;align-items:center;justify-content:center;margin-right:6px}
+.seg .t{font-size:11px;letter-spacing:.12em;font-weight:900;color:var(--silver)}
+.seg .v{margin-top:6px;font-size:13px;font-weight:800;color:var(--chalk);line-height:1.25;min-height:32px;word-break:break-word}
+.seg .v.empty{color:#5B7196;font-weight:700}
+.seg .hint{position:absolute;right:8px;top:8px;font-size:9px;letter-spacing:.1em;color:#4E6488;font-weight:800}
+.seg[data-on=true]{background:rgba(255,91,98,.12);border-color:var(--stop);animation:pulse 1s infinite}
+.seg[data-on=true] .hint{color:var(--stop)}
+.seg[data-done=true]{border-color:var(--go)} .seg[data-done=true] .n{background:var(--go);color:#06301C}
+.seg[data-sel=true]{border-color:var(--gold)}
+.readback{margin-top:7px;min-height:20px;font-size:14px;font-weight:800;color:var(--gold);line-height:1.35}
+.readback.ok{color:var(--go)}
+.readback.err{color:var(--stop)}
+.cmdopts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.cmdopts button{background:transparent;border:1px solid var(--line);color:#6C83A6;border-radius:6px;font-size:10px;
+  font-weight:800;letter-spacing:.06em;padding:5px 8px;cursor:pointer}
+.cmdopts button[aria-pressed=true]{color:var(--gold);border-color:var(--gold)}
+.cmdhelp{font-size:11px;color:#5B7196;font-weight:700;margin-top:6px;line-height:1.5}
+.logbtn{width:100%;margin-top:9px;background:var(--go);border:none;color:#06301C;
+  border-radius:10px;font-size:18px;font-weight:900;letter-spacing:.05em;padding:16px;cursor:pointer}
+.logbtn:disabled{background:#1C3450;color:#516A90;cursor:default}
+.logbtn:active:not(:disabled){transform:scale(.99)}
+
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.quick button{background:var(--panel);border:1px solid var(--line);color:var(--silver);
+  border-radius:8px;font-size:11px;font-weight:800;padding:10px 3px;cursor:pointer;letter-spacing:.03em}
+.quick button[aria-pressed=true]{background:var(--gold);color:#12203A;border-color:var(--gold)}
+.quick button.pen[aria-pressed=true],.quick button.pen{border-color:#5A4520}
+
+/* ---------- log ---------- */
+.logrow{display:flex;align-items:center;gap:8px;padding:8px 9px;border-bottom:1px solid #182B4B;
+  font-size:13px;cursor:pointer}
+.logrow:last-child{border-bottom:none}
+.logrow .n{width:22px;color:#5B7196;font-size:10px;font-weight:800;flex:0 0 auto}
+.logrow .dn{width:52px;flex:0 0 auto;font-size:10px;font-weight:800;color:var(--silver)}
+.logrow .cl{flex:1;min-width:0;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logrow .yd{width:46px;text-align:right;font-weight:900;flex:0 0 auto}
+.logrow .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;background:#3C5480}
+.logrow.ok .yd{color:var(--go)}
+.logrow.bad .yd{color:var(--stop)}
+.logrow.pen{background:rgba(244,183,64,.06)}
+.logrow.pen .cl{color:var(--gold);font-weight:700;font-size:12px}
+.logrow .sc{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.sc.s1{background:var(--go)} .sc.s0{background:#3B5480} .sc.sx{background:var(--gold)}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(4,10,20,.82);z-index:60;display:none;
+  align-items:flex-end;justify-content:center;padding:0}
+.mask.on{display:flex}
+.sheet{background:var(--panel2);border:1px solid var(--line);border-radius:14px 14px 0 0;
+  width:100%;max-width:760px;max-height:92vh;overflow:auto;padding:14px 12px calc(20px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch}
+.sheet h3{margin:0 0 10px;font-size:15px;letter-spacing:.1em;font-weight:900}
+.sheet .close{position:sticky;top:0;float:right;background:var(--panel);border:1px solid var(--line);
+  color:var(--silver);border-radius:6px;font-size:12px;font-weight:800;padding:6px 11px;cursor:pointer}
+.fld{display:block;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--chalk);font-size:15px;padding:11px;outline:none;margin-bottom:8px}
+.ck{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--silver);
+  padding:9px 0;cursor:pointer}
+.ck input{width:20px;height:20px;accent-color:var(--gold)}
+.prev{background:var(--navy);border:1px solid #2B4E86;border-radius:8px;padding:10px;font-size:14px;
+  font-weight:800;margin:6px 0 10px}
+
+/* ---------- summary ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:7px;margin-bottom:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+.tile .k{font-size:9px;letter-spacing:.14em;color:#6C83A6;font-weight:800}
+.tile .v{font-size:24px;font-weight:900;letter-spacing:-.02em;margin-top:2px}
+.tile .v.go{color:var(--go)} .tile .v.stop{color:var(--stop)} .tile .v.gold{color:var(--gold)}
+table.sum{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+table.sum th{text-align:left;font-size:9px;letter-spacing:.13em;color:#6C83A6;font-weight:800;
+  padding:5px 6px;border-bottom:1px solid var(--line)}
+table.sum td{padding:7px 6px;border-bottom:1px solid #182B4B;font-weight:700}
+table.sum td.num{text-align:right;font-weight:900}
+table.sum tr.hi td{color:var(--go)} table.sum tr.lo td{color:var(--stop)}
+.bar{height:5px;border-radius:3px;background:#1C3450;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--go)}
+h4.sec{font-size:10px;letter-spacing:.18em;color:var(--gold);font-weight:900;margin:16px 0 6px;
+  border-bottom:1px solid var(--line);padding-bottom:5px}
+.empty{color:#5B7196;font-size:13px;padding:14px 4px;text-align:center;font-weight:700}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--chalk);
+  color:#0F1E38;font-size:13px;font-weight:800;padding:10px 16px;border-radius:8px;z-index:90;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+.mini{font-size:11px;color:#6C83A6;font-weight:700;margin-top:6px;line-height:1.5}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.bar2{background:var(--panel);border:1px solid var(--line);color:var(--silver);border-radius:8px;
+  font-size:12px;font-weight:800;padding:10px 12px;cursor:pointer;flex:1 1 auto}
+.bar2.gold{border-color:var(--gold);color:var(--gold)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  body{background:#fff;color:#111}
+  .top,.strip,.card,.logbtn,.close{display:none!important}
+  .mask{position:static;display:block;background:#fff}
+  .sheet{max-height:none;border:none;background:#fff;color:#111}
+  .tile{border:1px solid #bbb;background:#fff}
+  .tile .k{color:#555} .tile .v{color:#111}
+  table.sum td{border-color:#ddd;color:#111} table.sum th{color:#555}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="topin">
+    <div class="brand">WILLOW CANYON <b>·</b> RNME</div>
+    <select class="oppin" id="opp" aria-label="Opponent"></select>
+    <div class="qtr" id="qtr"></div>
+    <div class="sbox">
+      <button class="s" id="scUs"><small>US</small><span>0</span></button>
+      <button class="s" id="scThem"><small>OPP</small><span>0</span></button>
+      <button class="s" id="sumBtn" style="border-color:var(--gold);color:var(--gold)"><small>HALF</small><span>SUM</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- SIGNATURE: the chain strip -->
+  <div class="strip">
+    <div class="striplbl"><span>OUR GOAL</span><span id="stripmid">BALL ON</span><span>THEIR GOAL</span></div>
+    <div class="turf" id="turf">
+      <div class="gained" id="gainBand" style="display:none"></div>
+      <div class="togain" id="tgMark"></div>
+      <div class="ball" id="ballMark"></div>
+    </div>
+    <div class="striphint" id="stripHint">DRAG THE BALL OR TAP THE FIELD TO SET THE SPOT</div>
+  </div>
+
+  <div class="sit">
+    <button class="sitbtn dd" id="ddText">1st &amp; <em>10</em></button>
+    <button class="sitbtn at" id="spotText">OWN 20</button>
+    <div class="meta" id="driveText">DRIVE 1 · 0 PLAYS</div>
+  </div>
+
+  <!-- SAY IT OR TYPE IT -->
+  <div class="cmdbar">
+    <div class="segs">
+      <button class="seg" id="seg1" data-seg="call"><span class="hint">HOLD</span>
+        <span class="n">1</span><span class="t">CALL</span><div class="v empty" id="seg1v">formation · motion · play</div></button>
+      <button class="seg" id="seg2" data-seg="def"><span class="hint">HOLD</span>
+        <span class="n">2</span><span class="t">DEFENSE</span><div class="v empty" id="seg2v">front · coverage · blitz</div></button>
+      <button class="seg" id="seg3" data-seg="result"><span class="hint">HOLD</span>
+        <span class="n">3</span><span class="t">RESULT</span><div class="v empty" id="seg3v">result · ball spot</div></button>
+    </div>
+    <div class="cmdrow">
+      <input class="cmdin" id="cmdIn" placeholder="…or type it — tap a segment first to aim it" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="micbtn" id="micBtn" title="Hold to talk — everything at once">ALL<br>AT ONCE</button>
+    </div>
+    <div class="readback" id="readback"></div>
+    <div class="cmdopts">
+      <button id="liveBtn" aria-pressed="false">LIVE MIC</button>
+      <button id="sayBtn" aria-pressed="false">READ BACK OUT LOUD</button>
+      <button id="helpBtn">WHAT CAN I SAY</button>
+      <button id="micOffBtn">MIC OFF</button>
+      <button id="micSetBtn">MIC SETTINGS &amp; TEST</button>
+      <span id="micMode" style="font-size:10px;color:#6C83A6;font-weight:800;letter-spacing:.06em;align-self:center"></span>
+    </div>
+  </div>
+
+  <!-- PLAY CALL -->
+  <div class="card">
+    <div class="calldisp">
+      <div class="txt empty" id="callTxt">Pick a formation and a play</div>
+      <button id="clearCall">Clear</button>
+    </div>
+
+    <p class="lab">FORMATION</p>
+    <div class="row" id="formRow"></div>
+
+    <p class="lab" style="margin-top:9px">MOTION</p>
+    <div class="row" id="motionRow"></div>
+
+    <p class="lab" style="margin-top:9px">HASH</p>
+    <div class="row" id="hashRow"></div>
+
+    <p class="lab" style="margin-top:9px">TAGS &amp; DIRECTION</p>
+    <div class="row" id="tagRow"></div>
+
+    <p class="lab" style="margin-top:11px">PLAY</p>
+    <div class="tabs" id="tabs"></div>
+    <input class="srch" id="search" placeholder="Type to find a play…" autocomplete="off">
+    <div class="plays" id="playGrid"></div>
+    <div id="modWrap" style="display:none">
+      <p class="lab" style="margin-top:10px" id="modLab">TAG</p>
+      <div class="row" id="modRow"></div>
+    </div>
+    <div class="btnrow"><button class="bar2 gold" id="addPlay">+ Add a play to the sheet</button></div>
+  </div>
+
+  <!-- WHAT THE DEFENSE DID -->
+  <div class="card">
+    <div class="calldisp" style="min-height:40px;padding:8px 12px">
+      <div class="txt empty" id="defTxt" style="font-size:15px">Front and coverage (optional)</div>
+      <button id="clearDef">Clear</button>
+    </div>
+    <p class="lab">FRONT</p>
+    <div class="row" id="frontRow"></div>
+    <div class="row" style="margin-top:6px"><button class="chip tag grow" id="blitzChip">BLITZ</button></div>
+    <p class="lab" style="margin-top:10px">COVERAGE</p>
+    <div class="row" id="covRow"></div>
+    <div id="covTagWrap" style="display:none">
+      <p class="lab" style="margin-top:10px" id="covTagLab">COVERAGE TAG</p>
+      <div class="row" id="covTagRow"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="card">
+    <p class="lab">WHERE THE BALL ENDED UP</p>
+    <div class="side">
+      <button id="sideOwn" aria-pressed="false">OUR SIDE</button>
+      <button id="sideOpp" aria-pressed="true">THEIR SIDE</button>
+    </div>
+    <div class="spotread">
+      <div class="v dim" id="padRead">— —</div>
+      <div class="gainpill" id="gainPill">0</div>
+    </div>
+    <div class="padgrid" id="pad"></div>
+
+    <p class="lab" style="margin-top:12px">RESULT</p>
+    <div class="quick" id="quick"></div>
+
+    <p class="lab" style="margin-top:12px">NOTE (optional)</p>
+    <input class="srch" id="noteIn" style="margin-bottom:6px"
+           placeholder="Who made the play, what you saw, what to come back to…"
+           autocomplete="off" maxlength="140">
+    <div class="row" id="noteQuick"></div>
+
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <p class="lab">PLAY LOG — TAP A ROW TO FIX IT</p>
+    <div id="log"><div class="empty">Nothing logged yet.</div></div>
+    <div class="btnrow">
+      <button class="bar2" id="expCsv">Export CSV</button>
+      <button class="bar2" id="expJson">Save backup</button>
+      <button class="bar2" id="impJson">Load backup</button>
+      <button class="bar2" id="newGame">New game</button>
+      <button class="bar2 gold" id="connectBtn">Connect Sheet</button>
+    </div>
+    <p class="mini" id="saveNote">Saving automatically.</p>
+    <p class="mini" style="color:#4E6488">BUILD v10 — three-segment voice: hold 1 CALL, hold 2 DEFENSE, hold 3 RESULT, press LOG PLAY.
+      Motion is its own row. Playbook rebuilt from the Trevor Browne scripts.</p>
+    <p class="mini" id="syncChip" style="display:none"></p>
+  </div>
+</div>
+
+<div class="actbar">
+  <div class="actin">
+    <button class="logbtn" id="logBtn" disabled>LOG PLAY</button>
+    <div class="actmini">
+      <button id="penBtn">PENALTY</button>
+      <button class="gold" id="fixBtn">FIX LAST</button>
+      <button id="posBtn">NEW DRIVE</button>
+      <button id="undoBtn">UNDO</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileIn" accept=".json" style="display:none">
+
+<script>
+"use strict";
+
+/* ============ storage: artifact storage → localStorage → memory ============ */
+const KEY="wc-gameday-v1";
+const Store=(()=>{
+  const mem={};
+  const hasArt = typeof window!=="undefined" && window.storage && typeof window.storage.get==="function";
+  let hasLS=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); hasLS=true; }catch(e){}
+  return {
+    mode: hasArt?"cloud":(hasLS?"device":"memory"),
+    async get(){
+      try{
+        if(hasArt){ const r=await window.storage.get(KEY); return r&&r.value?JSON.parse(r.value):null; }
+        if(hasLS){ const v=localStorage.getItem(KEY); return v?JSON.parse(v):null; }
+        return mem[KEY]||null;
+      }catch(e){ return mem[KEY]||null; }
+    },
+    async set(obj){
+      const s=JSON.stringify(obj); mem[KEY]=obj;
+      try{
+        if(hasArt){ await window.storage.set(KEY,s); return true; }
+        if(hasLS){ localStorage.setItem(KEY,s); return true; }
+      }catch(e){}
+      return false;
+    }
+  };
+})();
+
+/* ============ Apps Script backend (same pattern as the grading app) ============ */
+const Cloud=(()=>{
+  const inFrame = typeof google!=="undefined" && google.script && google.script.run;
+  let me = null, execUrl = "", key = "WCFB-GAMEDAY";
+  try{ me = localStorage.getItem("wc-gd-who"); execUrl = localStorage.getItem("wc-gd-exec")||""; key = localStorage.getItem("wc-gd-key")||key; }catch(e){}
+  if(!me){ me = "C"+Math.random().toString(36).slice(2,6).toUpperCase();
+    try{ localStorage.setItem("wc-gd-who",me); }catch(e){} }
+  const enc=encodeURIComponent;
+  const call=async (fn,arg)=>{
+    if(inFrame){
+      return new Promise((res,rej)=>{
+        google.script.run.withSuccessHandler(r=>{ try{res(JSON.parse(r));}catch(e){rej(e);} })
+                         .withFailureHandler(rej)[fn](arg);
+      });
+    }
+    if(!execUrl) throw new Error("offline");
+    if(fn==="loadGame"){
+      const r=await fetch(execUrl+"?action=load&key="+enc(key)+"&id="+enc(arg)); return r.json();
+    }
+    if(fn==="saveGame"){
+      const body=Object.assign({action:"save",key},JSON.parse(arg));
+      // no custom headers on purpose: a plain text/plain POST needs no preflight, and Apps Script's redirect is followed
+      const r=await fetch(execUrl,{method:"POST",body:JSON.stringify(body),redirect:"follow"}); return r.json();
+    }
+    if(fn==="ping"){ const r=await fetch(execUrl+"?action=ping&key="+enc(key)); return r.json(); }
+    throw new Error("unknown "+fn);
+  };
+  const api={
+    me, call,
+    get on(){ return !!(inFrame || execUrl); },
+    get inFrame(){ return !!inFrame; },
+    get execUrl(){ return execUrl; },
+    connect(url,k){
+      execUrl=(url||"").trim(); if(k) key=k.trim();
+      try{ localStorage.setItem("wc-gd-exec",execUrl); localStorage.setItem("wc-gd-key",key); }catch(e){}
+    }
+  };
+  return api;
+})();
+let LAST_PUSH=0, PULLING=false;
+
+function gameId(){ return (S.opp||"game").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40)||"game"; }
+
+/* merge a server copy in without losing anything either side logged */
+function mergeState(remote){
+  if(!remote||!remote.rows) return false;
+  const byId={}; S.rows.forEach(r=>byId[r.id]=r);
+  let added=0;
+  remote.rows.forEach(r=>{ if(!byId[r.id]){ byId[r.id]=r; added++; } });
+  const rows=Object.values(byId).sort((a,b)=>a.id-b.id);
+  rows.filter(r=>!r.pen).forEach((r,i)=>r.seq=i+1);
+  S.rows=rows;
+  if((remote._ts||0) > (S._ts||0)){                       // newer situation wins
+    ["spot","down","toGain","drive","qtr","us","them","hash"].forEach(k=>{ if(remote[k]!==undefined) S[k]=remote[k]; });
+    S._ts=remote._ts;
+  }
+  return added>0;
+}
+async function cloudPush(){
+  if(!Cloud.on) return;
+  S._ts=Date.now();
+  try{
+    setChip("saving");
+    await Cloud.call("saveGame",JSON.stringify({id:gameId(),by:Cloud.me,state:S}));
+    LAST_PUSH=Date.now(); setChip("ok");
+  }catch(e){ setChip("off"); }
+}
+async function cloudPull(){
+  if(!Cloud.on||PULLING) return; PULLING=true;
+  try{
+    const r=await Cloud.call("loadGame",gameId());
+    if(r&&r.state&&r.by!==Cloud.me){
+      const changed=mergeState(r.state);
+      if(changed){ render(); toast("Picked up entries from "+(r.by||"another device")); }
+      else render();
+    }
+    setChip("ok");
+  }catch(e){ setChip("off"); }
+  PULLING=false;
+}
+function setChip(mode){
+  const c=$("#syncChip"); if(!c) return;
+  const via = Cloud.inFrame ? "" : " (via Sheet link)";
+  c.textContent = mode==="ok" ? ("SYNCED TO THE SHEET · "+Cloud.me+via)
+                : mode==="saving" ? "SAVING…"
+                : "SHEET NOT REACHABLE — WORK IS KEPT ON THIS DEVICE";
+  c.dataset.mode=mode;
+  c.style.color = mode==="ok" ? "var(--go)" : (mode==="saving" ? "" : "var(--stop)");
+}
+
+/* the link to the Sheet, for when the tracker is running as its own page */
+function connectSheet(){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>CONNECT TO THE SHEET</h3>
+    <p class="mini">Paste the web app URL from your Apps Script deployment — it ends in <b>/exec</b>.
+    Once it's in, this page saves every play to the Sheet and picks up entries from other devices, the same as running from the link.</p>
+    <input class="fld" id="csUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(Cloud.execUrl)}">
+    <input class="fld" id="csKey" placeholder="Team key (matches TEAM_KEY in Code.gs)" value="WCFB-GAMEDAY">
+    <div class="prev" id="csStat" style="display:none"></div>
+    <button class="logbtn" id="csGo">TEST AND SAVE</button>
+  `);
+  $("#csGo").onclick=async()=>{
+    const url=$("#csUrl").value.trim(), k=$("#csKey").value.trim();
+    const st=$("#csStat"); st.style.display="block"; st.textContent="Testing…";
+    Cloud.connect(url,k);
+    try{
+      const r=await Cloud.call("ping");
+      if(r&&r.ok){ st.textContent="Connected. The Sheet answered."; $("#syncChip").style.display="block"; setChip("ok");
+        await cloudPull(); setTimeout(closeSheet,900); }
+      else st.textContent="The Sheet answered but rejected it: "+((r&&r.error)||"unknown")+". Check the team key.";
+    }catch(e){ st.textContent="Couldn't reach it. Check the URL ends in /exec and the deployment is set to Anyone."; }
+  };
+  setTimeout(()=>{ const f=$("#csUrl"); if(f&&!f.value) f.focus(); },80);
+}
+
+/* ============ 2026 varsity schedule ============ */
+const SCHEDULE=[
+  {d:"Aug 28", at:true,  opp:"Arizona College Prep", short:"ACP"},
+  {d:"Sep 4",  at:false, opp:"Dobson",               short:"Dobson"},
+  {d:"Sep 11", at:false, opp:"Betty H. Fairfax",     short:"Fairfax"},
+  {d:"Sep 18", at:true,  opp:"Trevor G. Browne",     short:"Trevor Browne"},
+  {d:"Sep 25", at:true,  opp:"Tolleson Union",       short:"Tolleson"},
+  {d:"Oct 2",  at:false, opp:"West Point",           short:"West Point"},
+  {d:"Oct 9",  at:true,  opp:"Sunrise Mountain",     short:"Sunrise Mtn."},
+  {d:"Oct 16", at:false, opp:"Cactus",               short:"Cactus"},
+  {d:"Oct 23", at:true,  opp:"Yuma Catholic",        short:"Yuma Catholic"},
+  {d:"Oct 30", at:false, opp:"Apollo",               short:"Apollo"}
+];
+function buildSchedule(){
+  const sel=$("#opp");
+  sel.innerHTML="";
+  const ph=new Option("Opponent…",""); sel.appendChild(ph);
+  SCHEDULE.forEach(g=>{
+    sel.appendChild(new Option(g.d+"  "+(g.at?"@ ":"vs ")+g.short, g.short));
+  });
+  sel.appendChild(new Option("Someone else…","__other"));
+  if(S.opp && !SCHEDULE.some(g=>g.short===S.opp) && S.opp!=="__other"){
+    sel.insertBefore(new Option(S.opp,S.opp), sel.lastChild);
+  }
+  sel.value = S.opp||"";
+  sel.classList.toggle("unset", !S.opp);
+}
+
+/* ============ seed playbook (Willow Canyon) ============ */
+const SEED={
+  v:6,
+  forms:["Joker","Trio","Bunch","Jacks","Rifle","Rifle Far","Luger","Luger Far","Empty"],
+  /* motion is its own thing now — the scripts call it before the play */
+  motions:["Slide","Jet","Orbit","2 Go","3 Go","4 Go","5 Go","No Mo"],
+  tags:["Lt","Rt","Far","Money","Solid","Sling","Scramble","Tite","Gator","Lizard","Offset","Open","Field","Bnd","Solo"],
+  plays:[
+    /* RUN */
+    {n:"Duke",t:"run",mods:["1 Tech","5 Tech","Cardinal","Q"]},
+    {n:"Devil",t:"run",mods:["1 Tech","5 Tech","Cardinal","Q"]},
+    {n:"Wisconsin",t:"run",mods:["1 Tech","Cardinal","Wrap"]},
+    {n:"Badger",t:"run",mods:["1 Tech","Cardinal","Wrap"]},
+    {n:"OK",t:"run",mods:["3 Tech","HAG","Q"]},
+    {n:"Sooner",t:"run",mods:["3 Tech","HAG","Q"]},
+    {n:"Bama",t:"run"},
+    {n:"Tide",t:"run"},
+    {n:"Pitt",t:"run",mods:["Q"]},
+    {n:"Panther",t:"run",mods:["Q"]},
+    {n:"Dakota",t:"run",mods:["1 Tech"]},
+    {n:"Bison",t:"run",mods:["1 Tech"]},
+
+    /* QUICK GAME */
+    {n:"0",t:"quick",mods:["Down"]},{n:"1",t:"quick",mods:["Down"]},{n:"2",t:"quick",mods:["Down"]},
+    {n:"3",t:"quick",mods:["Down"]},{n:"4",t:"quick",mods:["Down"]},{n:"5",t:"quick",mods:["Down"]},
+    {n:"2 Verts 4",t:"quick",mods:["Down"]},{n:"3 Verts 4",t:"quick",mods:["Down"]},{n:"4 2 Vert",t:"quick",mods:["Down"]},
+
+    /* DROP BACK — the number tags the crosser / import route */
+    {n:"Shallow",t:"drop",mods:["1","2","3","4","5","Key Post","Switch"]},
+    {n:"Mesh",t:"drop",mods:["1","2","3","4","5","Switch"]},
+    {n:"Choice",t:"drop",mods:["1","4"]},
+    {n:"Choice Dime",t:"drop",mods:["1","4"]},
+    {n:"Dime",t:"drop",mods:["1","4"]},
+    {n:"Curls",t:"drop",mods:["Climb","Down","Switch"]},
+    {n:"Verts",t:"drop",mods:["Switch","Dime","1","4"]},
+    {n:"Flood",t:"drop",mods:["Switch"]},
+    {n:"Zephyr",t:"drop"},
+    {n:"Key Post",t:"drop"},
+
+    /* SCREENS & DRAW */
+    {n:"Randy",t:"screen"},{n:"Larry",t:"screen"},{n:"Ralph",t:"screen"},
+    {n:"Louie",t:"screen"},{n:"Sergio",t:"screen"},{n:"LA",t:"screen"},{n:"Cali 20",t:"screen"},
+    {n:"Gator",t:"screen"},{n:"Lizard",t:"screen"},
+
+    /* SHOTS / SPECIAL */
+    {n:"Nike",t:"special"},{n:"DC",t:"special"}
+  ]
+};
+/* RPO and PLAY ACTION are a run call plus a tag, so they are built off the run list */
+const DERIVED={
+  rpo:{from:"run",label:"RPO TAG",mods:["Titan","Glance","Flint","Bubble","0","1","2","3","4","5","2 Verts 4"]},
+  pap:{from:"run",label:"PLAY ACTION TAG — DETROIT IS THE BOOT OUT",mods:["Detroit","Seahawk"]}
+};
+/* v1/v2 names now covered by the sheet above */
+const RETIRED=["Slide","Choice Dime","Tite Gat/Liz DC","Verts","4 Verts","2 Verts","Curl","Shallow","Shallow Down","Quick 1","0","1 Solo","4",
+  "Badger Titan","Wisco Titan","Tide No Mo","Bama Titan","Pitt Detroit","Panther Detroit",
+  "Wisco","Curl Climb","Choice","Flood","Gator","Lizard","Dime","OK","Sooner","Slide Oklahoma Q","LA","Ralf"];
+const FRONTS=["Over","Under","Odd","Stack","Bear"];
+const COVERAGES=["1","2","3","4","5","6","7","8"];
+const COVTAGS={"2":["Man","Zone"],"3":["Match","Buzz","Sky","Cloud"]};
+const MODLABEL={quick:"DOWN TAG",drop:"CROSSER / TAG ROUTE",run:"RUN TAG",screen:"TAG",special:"TAG"};
+const TYPES=[["all","ALL"],["run","RUN"],["quick","QUICK"],["drop","DROP BACK"],
+             ["screen","SCREEN"],["rpo","RPO"],["pap","PLAY ACTION"],["special","SHOTS"]];
+const TYPENAME={run:"Run",quick:"Quick game",drop:"Drop back",screen:"Screen / draw",
+                rpo:"RPO",pap:"Play action",special:"Shots / special"};
+const RESULTS=[
+  {n:"Rush"},{n:"Rush, TD",td:1},{n:"Rush, Safety",saf:1},
+  {n:"Scramble"},{n:"Scramble, TD",td:1},
+  {n:"Complete"},{n:"Complete, TD",td:1},{n:"Complete, Fumble",to:1},
+  {n:"Incomplete"},{n:"Dropped"},{n:"Batted Down"},{n:"Tipped"},{n:"Out of Bounds"},
+  {n:"Sack"},{n:"Sack, Fumble",to:1},{n:"Sack, Fumble, Def TD",to:1,dtd:1},{n:"Sack, Safety",saf:1},
+  {n:"Fumble",to:1},{n:"Fumble, Def TD",to:1,dtd:1},
+  {n:"Interception",to:1},{n:"Interception, Def TD",to:1,dtd:1},{n:"Interception, Fumble",to:1},
+  {n:"TD",td:1},{n:"Def TD",to:1,dtd:1},{n:"COP",to:1},{n:"Safety",saf:1},
+  {n:"Penalty",ns:1},{n:"Penalty, Safety",saf:1,ns:1},{n:"Offsetting Penalties",ns:1},{n:"Timeout",ns:1}
+];
+const RESMAP={}; RESULTS.forEach(r=>RESMAP[r.n]=r);
+
+/* ============ state ============ */
+let S=null, HIST=[], EDIT=null;
+function fresh(){
+  return {
+    opp:"", qtr:1, us:0, them:0,
+    spot:20, down:1, toGain:30, drive:1,
+    hash:"M", form:null, motion:null, tags:[], play:null, mod:null, src:null,
+    front:null, cov:null, covTag:null, blitz:false, note:"",
+    pad:{side:"opp", d:""},
+    res:null,
+    tab:"all",
+    lib:JSON.parse(JSON.stringify(SEED)),
+    rows:[]
+  };
+}
+
+/* ============ helpers ============ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function spotLabel(y){
+  y=Math.round(y);
+  if(y>=100) return "TD";
+  if(y<=0) return "SAFETY";
+  if(y===50) return "50";
+  return y<50 ? "OWN "+y : "OPP "+(100-y);
+}
+function ordinal(n){return ["","1st","2nd","3rd","4th"][n]||n+"th";}
+function callText(form,tags,play,mod,motion){
+  if(!form&&!play) return "";
+  const t=tags&&tags.length?" "+tags.join(" "):"";
+  return (form||"")+(motion?" "+motion:"")+t+(play?" "+play:"")+(mod?" "+mod:"");
+}
+function playDef(name){ return S.lib.plays.find(p=>p.n===name)||null; }
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");
+  clearTimeout(toast._i);toast._i=setTimeout(()=>t.classList.remove("on"),1600);}
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function playType(name){const p=playDef(name);return p?p.t:"special";}
+function isPassy(t){return t!=="run"&&t!=="rpo";}
+
+/* success: 50% of distance on 1st, 70% on 2nd, 100% on 3rd/4th */
+function isSuccess(r){
+  if(r.pen||r.ns) return null;
+  if(r.td) return true;
+  if(r.turnover) return false;
+  const need = r.down<=1 ? Math.ceil(r.dist*0.5)
+             : r.down===2 ? Math.ceil(r.dist*0.7)
+             : r.dist;
+  return r.gain>=need;
+}
+function isExplosive(r){
+  if(r.pen||r.ns||r.turnover) return false;
+  return isPassy(r.type) ? r.gain>=16 : r.gain>=12;
+}
+
+/* ============ save / snapshot ============ */
+let saveT=null;
+function save(){
+  clearTimeout(saveT);
+  saveT=setTimeout(async()=>{
+    const ok=await Store.set(S);
+    if(Cloud.on) cloudPush();
+    $("#saveNote").textContent = ok
+      ? "Saved "+(Store.mode==="cloud"?"to your Claude account":"on this device")+" · "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})
+      : "Not saving automatically — use Save backup before you close this.";
+  },250);
+}
+function snap(){ HIST.push(JSON.stringify({s:S,e:EDIT})); if(HIST.length>60) HIST.shift(); }
+
+/* ============ render ============ */
+function render(){
+  // top
+  $("#opp").classList.toggle("unset", !S.opp);
+  $("#scUs").querySelector("span").textContent=S.us;
+  $("#scThem").querySelector("span").textContent=S.them;
+  $$("#qtr button").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.q===S.qtr)));
+
+  // strip
+  const pct=y=>Math.max(0,Math.min(100,y))+"%";
+  $("#ballMark").style.left=pct(S.spot);
+  const goalToGo = S.toGain>=100;
+  $("#tgMark").style.left=pct(Math.min(S.toGain,99.6));
+  $("#stripmid").textContent = spotLabel(S.spot)+"  ·  TO GAIN "+(goalToGo?"GOAL":spotLabel(S.toGain));
+
+  const band=$("#gainBand"), last=S.rows.filter(r=>!r.pen).slice(-1)[0];
+  if(last && typeof last.from==="number"){
+    const a=Math.min(last.from,last.to), b=Math.max(last.from,last.to);
+    band.style.display="block"; band.style.left=pct(a); band.style.width=(Math.max(0.4,b-a))+"%";
+    band.className = last.gain<0?"gained lost":"gained";
+  } else band.style.display="none";
+
+  // situation
+  const dist = goalToGo ? "GOAL" : Math.max(1,Math.round(S.toGain-S.spot));
+  $("#ddText").innerHTML = ordinal(S.down)+" &amp; <em>"+dist+"</em>";
+  $("#spotText").textContent = spotLabel(S.spot);
+  const n=S.rows.filter(r=>!r.pen&&r.drive===S.drive).length;
+  $("#driveText").textContent = "DRIVE "+S.drive+" · "+n+" PLAY"+(n===1?"":"S")+" · Q"+S.qtr;
+
+  // call
+  const c=callText(S.form,S.tags,S.play,S.mod,S.motion);
+  const ct=$("#callTxt");
+  ct.textContent = c || "Pick a formation and a play";
+  ct.className = "txt"+(c?"":" empty");
+
+  paintSegments();
+  $$("#formRow .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===S.form)));
+  $$("#motionRow .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===S.motion)));
+  $$("#tagRow .chip").forEach(b=>b.setAttribute("aria-pressed",String(S.tags.includes(b.dataset.t))));
+  $$("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===S.tab)));
+  renderPlays();
+
+  // defense
+  const dtxt = defText(S.front,S.cov,S.covTag,S.blitz);
+  const dt=$("#defTxt");
+  dt.textContent = dtxt || "Front and coverage (optional)";
+  dt.className = "txt"+(dtxt?"":" empty");
+  $$("#frontRow .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===S.front)));
+  $("#blitzChip").setAttribute("aria-pressed",String(!!S.blitz));
+  $$("#covRow .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===S.cov)));
+  renderCovTags();
+
+  // pad
+  $("#sideOwn").setAttribute("aria-pressed",String(S.pad.side==="own"));
+  $("#sideOpp").setAttribute("aria-pressed",String(S.pad.side==="opp"));
+  const y=padYard();
+  const pr=$("#padRead");
+  if(y===null){ pr.textContent="— —"; pr.className="v dim"; }
+  else { pr.textContent=spotLabel(y); pr.className="v"; }
+  const g=y===null?null:Math.round(y-S.spot);
+  const gp=$("#gainPill");
+  gp.textContent = g===null?"—":(g>0?"+"+g:String(g));
+  gp.className="gainpill"+(g===null?"":(g>0?" pos":(g<0?" neg":"")));
+
+  $$("#quick button").forEach(b=>b.setAttribute("aria-pressed",String(S.res===b.dataset.r)));
+  const ni=$("#noteIn");
+  if(ni && document.activeElement!==ni && ni.value!==(S.note||"")) ni.value=S.note||"";
+  $("#logBtn").disabled = !(S.play && (y!==null || S.res));
+  $("#logBtn").textContent = EDIT!==null ? "SAVE CHANGES" : "LOG PLAY";
+  $("#undoBtn").disabled = !HIST.length;
+
+  renderLog();
+}
+
+function renderPlays(){
+  const q=$("#search").value.trim().toLowerCase();
+  const g=$("#playGrid"); g.innerHTML="";
+  const der=DERIVED[S.tab];
+  S.lib.plays
+    .filter(p=>der ? p.t===der.from : (S.tab==="all"||p.t===S.tab))
+    .filter(p=>!q||p.n.toLowerCase().includes(q))
+    .forEach(p=>{
+      const b=document.createElement("button");
+      b.className="chip"; b.textContent=p.n; b.dataset.p=p.n;
+      b.setAttribute("aria-pressed",String(p.n===S.play));
+      b.onclick=()=>{ const off=S.play===p.n; S.play=off?null:p.n; S.src=off?null:(der?S.tab:p.t); S.mod=null; render(); };
+      g.appendChild(b);
+    });
+  renderMods();
+  if(!g.children.length){
+    const d=document.createElement("div"); d.className="empty";
+    d.textContent = q?'No play called "'+$("#search").value.trim()+'" yet.':"Nothing here yet.";
+    d.style.gridColumn="1/-1"; g.appendChild(d);
+  }
+}
+
+function modsFor(){
+  if(!S.play) return null;
+  const der=DERIVED[S.src];
+  if(der) return {mods:der.mods,label:der.label};
+  const def=playDef(S.play);
+  if(!def||!def.mods||!def.mods.length) return null;
+  return {mods:def.mods,label:MODLABEL[def.t]||"TAG"};
+}
+function renderMods(){
+  const cfg=modsFor(), wrap=$("#modWrap"), row=$("#modRow");
+  if(!cfg){ wrap.style.display="none"; row.innerHTML=""; return; }
+  wrap.style.display="block";
+  $("#modLab").textContent=cfg.label;
+  row.innerHTML="";
+  cfg.mods.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="chip tag"; b.textContent=m;
+    b.setAttribute("aria-pressed",String(S.mod===m));
+    b.onclick=()=>{ S.mod=(S.mod===m?null:m); render(); };
+    row.appendChild(b);
+  });
+}
+
+function defText(front,cov,tag,blitz){
+  const bits=[];
+  if(front) bits.push(front);
+  if(cov) bits.push("Cover "+cov+(tag?" "+tag:""));
+  if(blitz) bits.push("Blitz");
+  return bits.join(" · ");
+}
+function renderCovTags(){
+  const list=S.cov?COVTAGS[S.cov]:null;
+  const wrap=$("#covTagWrap"), row=$("#covTagRow");
+  if(!list){ wrap.style.display="none"; row.innerHTML=""; return; }
+  wrap.style.display="block";
+  $("#covTagLab").textContent="COVER "+S.cov+" TAG";
+  row.innerHTML="";
+  list.forEach(t=>{ const b=document.createElement("button");
+    b.className="chip tag grow"; b.textContent=t.toUpperCase();
+    b.setAttribute("aria-pressed",String(S.covTag===t));
+    b.onclick=()=>{ S.covTag=(S.covTag===t?null:t); render(); };
+    row.appendChild(b); });
+}
+
+function renderLog(){
+  const L=$("#log");
+  if(!S.rows.length){ L.innerHTML='<div class="empty">Nothing logged yet.</div>'; return; }
+  L.innerHTML="";
+  [...S.rows].reverse().forEach(r=>{
+    const d=document.createElement("div");
+    const suc=isSuccess(r);
+    d.className="logrow"+(r.pen?" pen":(r.gain>0?" ok":(r.gain<0?" bad":"")));
+    const sc=r.pen?"":'<span class="sc '+(isExplosive(r)?"sx":(suc?"s1":"s0"))+'"></span>';
+    const dn=r.pen?"PEN":ordinal(r.down)+" &amp; "+(r.gtg?"G":r.dist);
+    const dfx=r.pen?"":defText(r.front,r.cov,r.covTag,r.blitz);
+    const call=r.pen?r.note:(callText(r.form,r.tags,r.play,r.mod,r.motion)+(r.res?" · "+r.res:"")+
+      (dfx?' <span style="color:#6C83A6;font-weight:700">vs '+dfx+'</span>':""));
+    const yd=r.pen?(r.gain>0?"+"+r.gain:String(r.gain)):(r.td?"TD":(r.gain>0?"+"+r.gain:String(r.gain)));
+    const nt=(!r.pen&&r.note)?'<div style="font-size:11px;color:var(--gold);font-weight:700;'+
+      'margin-top:2px;white-space:normal">'+esc(r.note)+'</div>':"";
+    d.innerHTML='<span class="n">'+r.seq+'</span><span class="dn">'+dn+'</span>'+sc+
+                '<span class="cl" style="white-space:normal">'+call+nt+'</span>'+
+                '<span class="yd">'+yd+'</span>';
+    d.onclick=()=>rowSheet(r);
+    L.appendChild(d);
+  });
+}
+
+/* ============ pad ============ */
+function padYard(){
+  const d=S.pad.d; if(!d) return null;
+  let n=parseInt(d,10); if(isNaN(n)) return null;
+  n=Math.max(0,Math.min(50,n));
+  return S.pad.side==="own"?n:100-n;
+}
+
+/* ============ logging ============ */
+function commit(){
+  const y=padYard();
+  const goalToGo=S.toGain>=100;
+  const dist=Math.max(1,Math.round((goalToGo?100:S.toGain)-S.spot));
+  const R0 = S.res?RESMAP[S.res]:null;
+  const td = !!(R0&&R0.td) || (y!==null && y>=100);
+  const turnover = !!(R0&&R0.to);
+  const safety = !!(R0&&R0.saf);
+  const nostat = !!(R0&&R0.ns);
+  const to = td?100:(safety?0:(y===null?S.spot:y));
+  const row={
+    seq:S.rows.filter(r=>!r.pen).length+1, id:Date.now(),
+    qtr:S.qtr, drive:S.drive, down:S.down, dist, gtg:goalToGo, tg:S.toGain,
+    from:S.spot, to, gain:Math.round(to-S.spot),
+    hash:S.hash, form:S.form, motion:S.motion, tags:[...S.tags], play:S.play, mod:S.mod,
+    front:S.front, cov:S.cov, covTag:S.covTag, blitz:!!S.blitz, note:(S.note||"").trim(),
+    type:S.src||playType(S.play), res:S.res, td, turnover, safety, ns:nostat, pen:false
+  };
+
+  if(EDIT!==null){
+    const i=S.rows.findIndex(r=>r.id===EDIT);
+    snap();
+    const old=S.rows[i];
+    S.rows[i]=Object.assign({},old,{
+      form:row.form,motion:row.motion,tags:row.tags,play:row.play,mod:row.mod,type:row.type,res:row.res,
+      front:row.front,cov:row.cov,covTag:row.covTag,blitz:row.blitz,note:row.note,
+      to:row.to,gain:Math.round(row.to-old.from),td:row.td,turnover:row.turnover,
+      safety:row.safety,ns:row.ns,hash:row.hash
+    });
+    const fixed=S.rows[i];
+    const isLast = S.rows.slice(i+1).every(x=>x.pen) && fixed.drive===S.drive;
+    const endsDrive = fixed.td || fixed.turnover || fixed.safety;
+    if(isLast && !endsDrive && !fixed.ns){
+      const tg = fixed.tg!==undefined ? fixed.tg : (fixed.gtg?100:fixed.from+fixed.dist);
+      S.spot = fixed.to;
+      if(fixed.to>=tg){ S.down=1; S.toGain=Math.min(fixed.to+10,100); }
+      else { S.down=Math.min(4,fixed.down+1); S.toGain=tg; }
+    }
+    EDIT=null; clearCall(); save(); render();
+    toast(isLast && !endsDrive ? "Play "+fixed.seq+" fixed — now "+ordinal(S.down)+" & "+
+      (S.toGain>=100?"Goal":Math.max(1,S.toGain-S.spot))+" at "+spotLabel(S.spot) : "Play "+fixed.seq+" fixed");
+    return;
+  }
+
+  snap();
+  S.rows.push(row);
+
+  // advance
+  if(nostat && !safety){
+    S.spot=to;
+    if(to>=S.toGain){ S.down=1; S.toGain=Math.min(to+10,100); }
+    clearCall(); save(); render();
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  if(td || turnover || safety){
+    if(td) S.us+=6;
+    if(R0&&R0.dtd) S.them+=6;
+    if(safety) S.them+=2;
+    const why = td?"Touchdown":(safety?"Safety":((R0&&R0.dtd)?"Defensive touchdown":"Change of possession"));
+    clearCall(); save(); render();
+    posSheet(why+" — where does the next drive start?");
+    return;
+  } else {
+    S.spot=to;
+    if(to>=S.toGain){ S.down=1; S.toGain=Math.min(to+10,100); }
+    else{
+      S.down++;
+      if(S.down>4){ clearCall(); save(); render(); posSheet("Turnover on downs — where does the next drive start?"); return; }
+    }
+  }
+  clearCall(); save(); render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function clearCall(){ S.play=null; S.mod=null; S.src=null; S.res=null; S.pad.d="";
+  S.front=null; S.cov=null; S.covTag=null; S.blitz=false; S.note=""; S.tags=[]; S.motion=null;
+  const ni=$("#noteIn"); if(ni) ni.value=""; }
+
+/* ============ penalty ============ */
+function penSheet(){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>PENALTY</h3>
+    <p class="lab">ON WHO</p>
+    <div class="row" id="pOn">
+      <button class="chip grow" data-v="off" aria-pressed="true">ON US</button>
+      <button class="chip grow" data-v="def" aria-pressed="false">ON THEM</button>
+    </div>
+    <p class="lab" style="margin-top:10px">YARDS</p>
+    <div class="row" id="pYds">
+      <button class="chip grow" data-v="5" aria-pressed="true">5</button>
+      <button class="chip grow" data-v="10">10</button>
+      <button class="chip grow" data-v="15">15</button>
+    </div>
+    <p class="lab" style="margin-top:10px">THE DOWN</p>
+    <div class="row" id="pDown">
+      <button class="chip grow" data-v="replay" aria-pressed="true">REPLAY IT</button>
+      <button class="chip grow" data-v="next">NEXT DOWN</button>
+      <button class="chip grow" data-v="first">AUTO 1ST</button>
+    </div>
+    <p class="lab" style="margin-top:10px">WHAT WAS IT</p>
+    <input class="fld" id="pName" placeholder="False start, holding, PI…" autocomplete="off">
+    <div class="prev" id="pPrev"></div>
+    <button class="logbtn" id="pGo">APPLY PENALTY</button>
+    <p class="mini">Most flags replay the down, so the distance just moves — 1st &amp; 10 becomes
+    1st &amp; 5 or 1st &amp; 15. Only tap AUTO 1ST for the fouls that actually award one.
+    If the officials end up somewhere else, tap the down and distance up top and set it by hand.</p>
+  `);
+  let on="off", yds=5, dn="replay";
+
+  const outcome=()=>{
+    const raw = on==="off" ? -yds : yds;
+    const nspot = clampPen(S.spot, raw);
+    let down=S.down, tg=S.toGain;
+    if(dn==="first"){ down=1; tg=Math.min(nspot+10,100); }
+    else {
+      if(dn==="next") down=Math.min(4,S.down+1);
+      if(nspot>=tg){ down=1; tg=Math.min(nspot+10,100); }   // walked past the sticks
+      // a flag that backs you outside the 10 ends a goal-to-go series
+      if(tg>=100 && (100-nspot)>10) tg=nspot+10;
+    }
+    return {nspot, down, tg, moved:Math.round(nspot-S.spot)};
+  };
+  const upd=()=>{
+    const o=outcome();
+    const dist = o.tg>=100 ? "Goal" : Math.max(1,Math.round(o.tg-o.nspot));
+    $("#pPrev").innerHTML = "<span style='font-size:19px'>"+ordinal(o.down)+" &amp; "+dist+"</span>"+
+      "<br><span style='font-size:12px;color:#9FB0C6;font-weight:700'>"+
+      spotLabel(S.spot)+" → "+spotLabel(o.nspot)+" ("+(o.moved>0?"+"+o.moved:o.moved)+")</span>";
+  };
+  const wire=(id,fn)=>{ $(id).onclick=e=>{ const b=e.target.closest("button"); if(!b) return;
+    [...$(id).children].forEach(x=>x.setAttribute("aria-pressed",String(x===b))); fn(b.dataset.v); upd(); }; };
+  wire("#pOn", v=>{ on=v; });
+  wire("#pYds", v=>{ yds=+v; });
+  wire("#pDown", v=>{ dn=v; });
+  upd();
+
+  $("#pGo").onclick=()=>{
+    snap();
+    const o=outcome();
+    S.rows.push({seq:"—",id:Date.now(),qtr:S.qtr,drive:S.drive,down:S.down,dist:0,
+      from:S.spot,to:o.nspot,gain:o.moved,pen:true,
+      note:(on==="off"?"US · ":"THEM · ")+(($("#pName").value.trim())||yds+" yards")+" ("+yds+")"});
+    S.spot=o.nspot; S.down=o.down; S.toGain=o.tg;
+    const dist = o.tg>=100 ? "Goal" : Math.max(1,Math.round(o.tg-o.nspot));
+    closeSheet(); save(); render(); toast(ordinal(o.down)+" & "+dist+" at "+spotLabel(o.nspot));
+  };
+}
+function clampPen(spot,raw){
+  if(raw<0){ const maxBack=Math.floor(spot/2); return Math.round(spot-Math.min(-raw,maxBack)); }
+  const maxFwd=Math.floor((100-spot)/2); return Math.round(spot+Math.min(raw,maxFwd));
+}
+
+/* ============ sheets ============ */
+function openSheet(html){ $("#sheet").innerHTML=html; $("#mask").classList.add("on"); }
+function closeSheet(){ $("#mask").classList.remove("on"); $("#sheet").innerHTML=""; }
+$("#mask").addEventListener("click",e=>{ if(e.target.id==="mask"||e.target.dataset.x!==undefined) closeSheet(); });
+
+function rowSheet(r){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>${r.pen?"PENALTY":"PLAY "+r.seq}</h3>
+    <div class="prev">${r.pen?r.note:callText(r.form,r.tags,r.play,r.mod,r.motion)}<br>
+      <span style="font-size:12px;color:#9FB0C6;font-weight:700">
+      Q${r.qtr} · ${r.pen?"":ordinal(r.down)+" &amp; "+(r.gtg?"Goal":r.dist)+" · "}
+      ${spotLabel(r.from)} → ${spotLabel(r.to)} · ${r.gain>0?"+"+r.gain:r.gain}</span>
+      ${(!r.pen&&r.note)?'<br><span style="font-size:13px;color:#F4B740;font-weight:700">'+esc(r.note)+'</span>':""}</div>
+    ${r.pen?"":'<button class="bar2" id="rEdit" style="width:100%;margin-bottom:8px">Re-enter this play</button>'}
+    <button class="logbtn" id="rDel" style="background:#FF5B62;color:#3A0509">DELETE THIS ROW</button>
+    <p class="mini">Deleting a row does not recalculate the down and distance for plays after it — fix the current spot by hand if you need to.</p>
+  `);
+  $("#rDel").onclick=()=>{ snap(); S.rows=S.rows.filter(x=>x.id!==r.id);
+    S.rows.filter(x=>!x.pen).forEach((x,i)=>x.seq=i+1); closeSheet(); save(); render(); toast("Row deleted"); };
+  const e=$("#rEdit"); if(e) e.onclick=()=>{ closeSheet(); fixPlay(r); };
+}
+
+function addPlaySheet(){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>ADD A PLAY</h3>
+    <input class="fld" id="apName" placeholder="Exact call — e.g. Trio Badger Titan" autocomplete="off">
+    <p class="lab">TYPE</p>
+    <div class="row" id="apType">
+      <button class="chip grow" data-v="run">RUN</button>
+      <button class="chip grow" data-v="quick">QUICK</button>
+      <button class="chip grow" data-v="drop" aria-pressed="true">DROP BACK</button>
+      <button class="chip grow" data-v="screen">SCREEN</button>
+      <button class="chip grow" data-v="rpo">RPO</button>
+      <button class="chip grow" data-v="pap">PAP</button>
+      <button class="chip grow" data-v="other">OTHER</button>
+    </div>
+    <p class="lab" style="margin-top:10px">TAGS THIS PLAY CAN TAKE (optional)</p>
+    <input class="fld" id="apMods" placeholder="e.g. 1 2 3 4 5   or   Down" autocomplete="off">
+    <button class="logbtn" id="apGo" style="margin-top:12px">ADD TO CALL SHEET</button>
+    <p class="mini">It stays on the sheet for every game from now on.</p>
+    <h4 class="sec">REMOVE A PLAY</h4>
+    <div class="row" id="apList"></div>
+  `);
+  let t="drop";
+  $("#apType").onclick=e=>{const b=e.target.closest("button");if(!b)return;t=b.dataset.v;
+    [...$("#apType").children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)));};
+  const list=()=>{ const w=$("#apList"); w.innerHTML="";
+    S.lib.plays.forEach(p=>{ const b=document.createElement("button");
+      b.className="chip sm"; b.textContent=p.n+" ✕";
+      b.onclick=()=>{ S.lib.plays=S.lib.plays.filter(x=>x.n!==p.n); if(S.play===p.n)S.play=null; save(); list(); render(); };
+      w.appendChild(b); }); };
+  list();
+  $("#apGo").onclick=()=>{
+    const n=$("#apName").value.trim(); if(!n){ toast("Type the play name first"); return; }
+    if(S.lib.plays.some(p=>p.n.toLowerCase()===n.toLowerCase())){ toast("Already on the sheet"); return; }
+    const mods=$("#apMods").value.trim().split(/[\s,]+/).filter(Boolean);
+    S.lib.plays.push(mods.length?{n,t,mods}:{n,t}); S.play=n; S.mod=null; S.tab="all"; $("#search").value=""; save(); closeSheet(); render(); toast('"'+n+'" added');
+  };
+  setTimeout(()=>{ const f=$("#apName"); if(f) f.focus(); },80);
+}
+
+function posSheet(headline){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>NEW DRIVE</h3>
+    ${headline?'<div class="prev">'+headline+'</div>':''}
+    <p class="lab">BALL SPOT TO START</p>
+    <div class="side" style="margin-bottom:8px">
+      <button id="dOwn" aria-pressed="true">OUR SIDE</button>
+      <button id="dOpp" aria-pressed="false">THEIR SIDE</button>
+    </div>
+    <input class="fld" id="dYd" inputmode="numeric" placeholder="Yard line — e.g. 20" value="20">
+    <button class="logbtn" id="dGo">START DRIVE</button>
+  `);
+  let side="own";
+  $("#dOwn").onclick=()=>{side="own";$("#dOwn").setAttribute("aria-pressed","true");$("#dOpp").setAttribute("aria-pressed","false");};
+  $("#dOpp").onclick=()=>{side="opp";$("#dOpp").setAttribute("aria-pressed","true");$("#dOwn").setAttribute("aria-pressed","false");};
+  $("#dGo").onclick=()=>{
+    let n=parseInt($("#dYd").value,10); if(isNaN(n))n=20; n=Math.max(1,Math.min(50,n));
+    snap(); const y=side==="own"?n:100-n;
+    S.drive++; S.down=1; S.spot=y; S.toGain=Math.min(y+10,100); clearCall();
+    closeSheet(); save(); render(); toast("Drive "+S.drive+" · ball on "+spotLabel(y));
+  };
+}
+
+/* ===================== COMMAND PARSER (typed or spoken) =====================
+   One utterance can carry any mix of: formation, formation tags, play, play tag,
+   hash, result, ball spot or gain, front, coverage, blitz, and a command word.
+   Everything is matched against the live playbook so a play Coach adds is
+   recognized the moment it exists.
+   ========================================================================== */
+/* ===================== COMMAND PARSER (typed or spoken) =====================
+   One utterance can carry any mix of: formation, formation tags, play, play tag,
+   hash, result, ball spot or gain, front, coverage, blitz, and a command word.
+   Everything is matched against the live playbook so a play Coach adds is
+   recognized the moment it exists.
+   ========================================================================== */
+const CMD = (() => {
+  const ONES = {zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,
+    ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
+    eighteen:18,nineteen:19};
+  const TENS = {twenty:20,thirty:30,forty:40,fifty:50};
+
+  function normalize(text){
+    let t = String(text||"").toLowerCase()
+      .replace(/[’']/g,"").replace(/[-–—]/g," ").replace(/[^a-z0-9 /&]/g," ")
+      .replace(/\s+/g," ").trim();
+    // "cover 3", "cover three" etc. all end up as digits
+    const w = t.split(" "); const out=[];
+    for(let i=0;i<w.length;i++){
+      const a=w[i], b=w[i+1];
+      if(TENS[a]!==undefined && ONES[b]!==undefined && ONES[b]<10){ out.push(String(TENS[a]+ONES[b])); i++; continue; }
+      if(TENS[a]!==undefined){ out.push(String(TENS[a])); continue; }
+      if(ONES[a]!==undefined){ out.push(String(ONES[a])); continue; }
+      if(a==="hundred") continue;
+      out.push(a);
+    }
+    return out;
+  }
+
+  // small edit-distance so "wisconsen" still hits "wisconsin"
+  function lev(a,b){
+    if(a===b) return 0;
+    const m=a.length,n=b.length; if(!m||!n) return m+n;
+    let prev=[...Array(n+1).keys()];
+    for(let i=1;i<=m;i++){ const cur=[i];
+      for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      prev=cur; }
+    return prev[n];
+  }
+  let FUZZY=false;
+  function wordEq(a,b){
+    if(a===b) return true;
+    if(!FUZZY) return false;
+    if(/^\d+$/.test(a)||/^\d+$/.test(b)) return false;
+    if(a[0]!==b[0]) return false;                       // never drift across the first letter
+    if(a.length>=6 && b.length>=6 && lev(a,b)<=1) return true;
+    if(a.length>=8 && b.length>=8 && lev(a,b)<=2) return true;
+    return false;
+  }
+
+  const RES_ATOMS = {
+    "Rush":["rush","run","running","ran","carry","keeper","keep"],
+    "Complete":["complete","completed","completion","catch","caught","hit"],
+    "Incomplete":["incomplete","incompletion","miss","missed","overthrown","overthrow"],
+    "Dropped":["drop","dropped"],
+    "Batted Down":["batted","bat","swatted"],
+    "Tipped":["tipped","tip","deflected"],
+    "Out of Bounds":["oob","out of bounds"],
+    "Sack":["sack","sacked"],
+    "Scramble":["scramble","scrambled"],
+    "Fumble":["fumble","fumbled"],
+    "Interception":["interception","intercepted","pick","picked","int"],
+    "TD":["td","touchdown","score","scored","six"],
+    "Def TD":["def td","defensive touchdown","pick six","scoop and score"],
+    "Safety":["safety"],
+    "COP":["cop","punt","punted","change of possession","turnover on downs","downs"],
+    "Penalty":["penalty","flag","flagged"],
+    "Offsetting Penalties":["offsetting"],
+    "Timeout":["timeout","time out"]
+  };
+  const FRONTS_A = {"Over":["over"],"Under":["under"],"Odd":["odd"],"Stack":["stack","stacked"],"Bear":["bear"]};
+  const COVTAG_A = {"Man":["man"],"Zone":["zone"],"Match":["match"],"Buzz":["buzz"],"Sky":["sky"],"Cloud":["cloud"]};
+  const HASH_A = {L:["left hash","left","l hash"],M:["middle","mid","middle hash"],R:["right hash","right","r hash"]};
+  const OWN_A = ["own","our","ours","minus side","our side"];
+  const OPP_A = ["opp","their","theirs","opponent","their side","plus side"];
+  const GAIN_A = ["gain of","gain","gained","picked up","plus"];
+  const LOSS_A = ["loss of","loss","lost","minus","back"];
+  const NOGAIN_A = ["no gain","zero gain","nothing","stuffed"];
+  const BLITZ_A = ["blitz","blitzed","pressure","brought","bringing","fire zone","dog"];
+  const CMD_A = {
+    log:["log","log it","enter","done","send","that is it","thats it"],
+    undo:["undo","scratch that","take that back"],
+    fix:["fix last","fix that","fix","correction","correct that"],
+    drive:["new drive","new possession","new series"],
+    clear:["clear","start over","reset call"],
+    same:["same","same play","repeat","again","same call"]
+  };
+  const NAME_ALIAS = {
+    "Joker":["joker","jokers","joke"],"Trio":["trio","treo","tree o"],"Bunch":["bunch"],
+    "Jacks":["jacks","jack","jax"],"Rifle":["rifle","rifles"],"Luger":["luger","lugar","luge","looker"],
+    "Empty":["empty","mt"],"Rifle Far":["rifle far"],"Luger Far":["luger far","lugar far"],
+    "Wisconsin":["wisconsin","wisco","wis"],"Badger":["badger","badgers"],"Bama":["bama","alabama"],
+    "Tide":["tide"],"Pitt":["pitt","pit","pittsburgh"],"Panther":["panther","panthers"],
+    "Duke":["duke"],"Devil":["devil","devils"],"OK":["ok","okay","oklahoma"],"Sooner":["sooner","sooners"],
+    "Gator":["gator","gators","gat"],"Lizard":["lizard","liz"],
+    "Dakota":["dakota"],"Bison":["bison"],"Shallow":["shallow"],"Mesh":["mesh"],
+    "Choice":["choice"],"Choice Dime":["choice dime","choice dimes"],"Dime":["dime","dimes"],"Flood":["flood"],
+    "LA":["la","l a","el a"],"Wrap":["wrap"],"Bubble":["bubble"],"Switch":["switch","switches"],
+    "Curls":["curls","curl"],"Verts":["verts","vert","verticals","vertical"],"Zephyr":["zephyr","zephar","zephyr"],
+    "3 Verts 4":["3 verts 4","3 vert 4","three verts four"],"4 2 Vert":["4 2 vert","4 2 verts","four two vert"],
+    "Slide":["slide"],"Jet":["jet"],"Orbit":["orbit"],"2 Go":["2 go","two go"],"3 Go":["3 go"],"4 Go":["4 go"],"5 Go":["5 go"],
+    "Rt":["rt","right"],"Solid":["solid"],"Sling":["sling"],"Pitt":["pitt","pit","pittsburgh","pittsburg"],
+    "Randy":["randy"],"Larry":["larry"],"Ralph":["ralph","ralf"],"Louie":["louie","louis","louey"],
+    "Sergio":["sergio"],"Gator":["gator"],"Lizard":["lizard"],"Cali 20":["cali 20","cali"],
+    "Nike":["nike"],"Tite Gat/Liz DC":["tite","tight","tite gat","tight gat"],
+    "2 Verts 4":["2 verts 4","2 vert 4","two verts four"],
+    "1 Tech":["1 tech","one tech","1 technique"],"5 Tech":["5 tech","five tech","5 technique"],
+    "No Mo":["no mo","no motion","nomo"],"HAG":["hag"],"Cardinal":["cardinal"],"Climb":["climb"],
+    "Key Post":["key post","keypost"],"5 Go":["5 go","five go"],"Down":["down"],
+    "Detroit":["detroit"],"Flint":["flint"],"Seahawk":["seahawk","seahawks"],"Titan":["titan"],"Glance":["glance"],
+    "Lt":["lt","left","l"],"Far":["far"],"Money":["money"],"Q":["q","queue","cue"],
+    "Field":["field","to the field"],"Bnd":["bnd","boundary","bound","to the boundary"],"Solo":["solo"]
+  };
+  const words = s => s.split(" ");
+
+  function phraseHits(tokens, i, phrase){
+    const pw=words(phrase);
+    if(i+pw.length>tokens.length) return 0;
+    for(let k=0;k<pw.length;k++) if(!wordEq(tokens[i+k],pw[k])) return 0;
+    return pw.length;
+  }
+  function longest(tokens,i,list){       // list: [{value, phrase}]
+    let best=null, n=0;
+    list.forEach(e=>{ const h=phraseHits(tokens,i,e.phrase); if(h>n){ n=h; best=e; } });
+    return best?{value:best.value,n}:null;
+  }
+  function aliasList(map){ const out=[];
+    Object.keys(map).forEach(v=>map[v].forEach(p=>out.push({value:v,phrase:p}))); return out; }
+
+  /* build the vocab from the live playbook every call, so added plays count */
+  function vocab(lib){
+    const names = n => (NAME_ALIAS[n]||[]).concat([n.toLowerCase()]).map(p=>({value:n,phrase:p}));
+    const forms=[]; lib.forms.forEach(f=>forms.push(...names(f)));
+    const plays=[]; lib.plays.forEach(p=>{ if(!/^\d$/.test(p.n)) plays.push(...names(p.n)); });
+    const mods=[]; const seen=new Set();
+    lib.plays.forEach(p=>(p.mods||[]).forEach(m=>{ if(!/^\d+$/.test(m)&&!seen.has(m)){ seen.add(m); mods.push(...names(m)); } }));
+    (typeof DERIVED!=="undefined"?Object.values(DERIVED):[]).forEach(d=>d.mods.forEach(m=>{
+      if(!/^\d+$/.test(m)&&!seen.has(m)){ seen.add(m); mods.push(...names(m)); } }));
+    const tags=[]; lib.tags.forEach(t=>tags.push(...names(t)));
+    const motions=[]; (lib.motions||[]).forEach(m=>motions.push(...names(m)));
+    return {forms,plays,mods,tags,motions};
+  }
+
+  function parse(text, ctx, scope){
+    // ctx: {lib, spot, quickNames:[...], playDef(name)->def, derived}
+    // scope: "call" (formation/motion/play), "def" (front/coverage/blitz),
+    //        "result" (result/spot/hash), or null for everything at once
+    const t = normalize(text);
+    const V = vocab(ctx.lib);
+    const inCall = !scope || scope==="call", inDef = !scope || scope==="def", inRes = !scope || scope==="result";
+    const o = {form:null,motion:null,tags:[],play:null,src:null,mod:null,hash:null,res:null,
+               spot:null,gain:null,front:null,cov:null,covTag:null,blitz:null,cmd:null,unknown:[]};
+    const addMod = m => { o.mod = o.mod ? (o.mod.split(" ").includes(m) ? o.mod : o.mod+" "+m) : m; };
+    const setPlay = name => {
+      // "Gator Flood": Gator was matched as a play, but it is really a tag on Flood
+      if(o.play && (o.play==="Gator"||o.play==="Lizard") && name!==o.play){ if(!o.tags.includes(o.play)) o.tags.push(o.play); }
+      // "3 Shallow": the bare 3 was taken as quick game, but it is Shallow's route tag
+      const prevDigit = (o.play && /^\d$/.test(o.play) && !o.mod) ? o.play : null;
+      o.play=name; const d=ctx.playDef(name); o.src=d?d.t:null;
+      if(prevDigit && d && d.mods && d.mods.includes(prevDigit)) o.mod=prevDigit;
+    };
+    const resAtoms=[];
+    let i=0, sideForNumber=null, lastWasPlay=false, pendingRel=null;
+
+    const RES_LIST=aliasList(RES_ATOMS), FR_LIST=aliasList(FRONTS_A), CT_LIST=aliasList(COVTAG_A),
+          HASH_LIST=aliasList(HASH_A), CMD_LIST=aliasList(CMD_A);
+    const isNum = s => /^\d+$/.test(s);
+
+    const step=()=>{
+      const w=t[i]; let h;
+
+      // commands
+      if((h=longest(t,i,CMD_LIST))){ o.cmd=h.value; i+=h.n; return true; }
+
+      // "cover 3 sky", "cover two man", "quarters"
+      if(inDef && (w==="cover"||w==="coverage")){
+        if(isNum(t[i+1])){ o.cov=t[i+1]; i+=2; } else { i++; }
+        return true;
+      }
+      if(inDef && w==="quarters"){ o.cov="4"; i++; return true; }
+      if(inDef && (h=longest(t,i,CT_LIST))){ o.covTag=h.value; i+=h.n; return true; }
+      if(inDef && (h=longest(t,i,FR_LIST))){ o.front=h.value; i+=h.n; return true; }
+      if(inDef && (h=longest(t,i,BLITZ_A.map(p=>({value:true,phrase:p}))))){ o.blitz=true; i+=h.n; return true; }
+      if(inDef && w==="no"&&(t[i+1]==="blitz"||t[i+1]==="pressure")){ o.blitz=false; i+=2; return true; }
+
+      // ball placement
+      if(inRes && (w==="fifty"||w==="midfield"||(w==="50"))){ o.spot=50; i++; lastWasPlay=false; return true; }
+      if(inRes && (h=longest(t,i,OWN_A.map(p=>({value:"own",phrase:p}))))){ sideForNumber="own"; i+=h.n; return true; }
+      if(inRes && (h=longest(t,i,OPP_A.map(p=>({value:"opp",phrase:p}))))){ sideForNumber="opp"; i+=h.n; return true; }
+      if(inRes && (h=longest(t,i,NOGAIN_A.map(p=>({value:0,phrase:p}))))){ o.gain=0; i+=h.n; return true; }
+      if(inRes && (h=longest(t,i,GAIN_A.map(p=>({value:"gain",phrase:p}))))){ pendingRel="gain"; i+=h.n; return true; }
+      if(inRes && (h=longest(t,i,LOSS_A.map(p=>({value:"loss",phrase:p}))))){ pendingRel="loss"; i+=h.n; return true; }
+      if(w==="to"||w==="at"||w==="the"||w==="on"||w==="and"||w==="a"||w==="of"||w==="for"||w==="yard"||w==="yards"){ i++; return true; }
+
+      // hash — must come before formation tags because "left" is also "Lt"
+      if(inRes && (w==="left"||w==="right")&&t[i+1]==="hash"){ o.hash = w==="left"?"L":"R"; i+=2; return true; }
+      if(inRes && (w==="middle"||w==="mid")){ o.hash="M"; i++; return true; }
+
+      // formations (multi-word first)
+      if(inCall && !o.play && (h=longest(t,i,V.forms))){ o.form=h.value; i+=h.n; return true; }
+
+      // motion — "2 jet", "5 orbit", "slide", "no mo"; a number right before a motion word belongs to it
+      if(inCall && isNum(w) && t[i+1] && (h=longest(t,i+1,V.motions)) && !/\d/.test(h.value)){
+        o.motion = w+" "+h.value; i+=1+h.n; lastWasPlay=false; return true; }
+      if(inCall && (h=longest(t,i,V.motions))){ o.motion=h.value; i+=h.n; lastWasPlay=false; return true; }
+
+      // results
+      if(inRes && (h=longest(t,i,RES_LIST))){ resAtoms.push(h.value); i+=h.n; lastWasPlay=false; return true; }
+
+      // plays and their tags
+      if(inCall && (h=longest(t,i,V.plays))){ setPlay(h.value); lastWasPlay=true; i+=h.n; return true; }
+      if(inCall && (h=longest(t,i,V.mods))){
+        addMod(h.value); i+=h.n;
+        // Detroit/Flint/etc. re-bucket a run call into play action / RPO
+        if(ctx.derived){ Object.keys(ctx.derived).forEach(k=>{ if(ctx.derived[k].mods.includes(h.value) && o.src==="run") o.src=k; }); }
+        return true;
+      }
+      if(inCall && (h=longest(t,i,V.tags))){ if(!o.tags.includes(h.value)) o.tags.push(h.value); i+=h.n; return true; }
+
+      // numbers: a quick-game call, a play tag, a gain, or a yard line
+      if(isNum(w)){
+        const n=+w;
+        if(pendingRel){ o.gain = pendingRel==="gain"?n:-n; pendingRel=null; i++; return true; }
+        if(sideForNumber){ o.spot = sideForNumber==="own"?n:100-n; sideForNumber=null; i++; lastWasPlay=false; return true; }
+        if(inCall && lastWasPlay){
+          const d=ctx.playDef(o.play);
+          const takes = (d&&d.mods)?d.mods:[];
+          const dtakes = (ctx.derived&&ctx.derived[o.src])?ctx.derived[o.src].mods:[];
+          if(takes.includes(w)||dtakes.includes(w)){ addMod(w); lastWasPlay=false; i++; return true; }
+        }
+        if(inCall && !o.play && n<=5 && ctx.quickNames.includes(w)){ o.play=w; o.src="quick"; lastWasPlay=true; i++; return true; }
+        if(!inRes){ o.unknown.push(w); i++; return true; }
+        // bare yard line: stays on the side the ball is on now
+        o.spot = (ctx.spot<=50) ? n : 100-n; i++; lastWasPlay=false; return true;
+      }
+      return false;
+    };
+    while(i<t.length){
+      const start=i;
+      FUZZY=false; step();
+      if(i===start){ FUZZY=true; step(); }
+      if(i===start){ o.unknown.push(t[i]); i++; }
+    }
+    FUZZY=false;
+
+    // compose the result from its atoms
+    if(resAtoms.length){
+      const set=[...new Set(resAtoms)];
+      const key=set.slice().sort().join("|");
+      const hit=ctx.results.find(r=>r.n.split(",").map(x=>x.trim()).sort().join("|")===key);
+      if(hit) o.res=hit.n;
+      else {
+        // try dropping the least specific atom, e.g. "rush touchdown" -> "Rush, TD"
+        const alt=ctx.results.find(r=>{ const parts=r.n.split(",").map(x=>x.trim()); return set.every(a=>parts.includes(a)); });
+        o.res = alt?alt.n:set[0];
+      }
+    }
+    if(o.res==="Incomplete"||o.res==="Dropped"||o.res==="Batted Down"||o.res==="Tipped"){ if(o.spot===null&&o.gain===null) o.gain=0; }
+    if(o.gain!==null && o.spot===null) o.spot = Math.max(0,Math.min(100, ctx.spot + o.gain));
+    return o;
+  }
+
+  function readback(o, ctx){
+    const bits=[];
+    const call=[o.form,o.motion,...o.tags,o.play,o.mod].filter(Boolean).join(" ");
+    if(call) bits.push(call);
+    if(o.hash) bits.push({L:"left hash",M:"middle",R:"right hash"}[o.hash]);
+    if(o.res) bits.push(o.res.toLowerCase());
+    if(o.spot!==null) bits.push("to "+ctx.spotLabel(o.spot)+(o.gain!==null?" ("+(o.gain>0?"+":"")+o.gain+")":""));
+    const d=[o.front,o.cov?"cover "+o.cov+(o.covTag?" "+o.covTag.toLowerCase():""):null,o.blitz?"blitz":null].filter(Boolean);
+    if(d.length) bits.push("vs "+d.join(" "));
+    if(o.cmd) bits.push("["+o.cmd+"]");
+    return bits.join(" · ");
+  }
+
+  return {parse, readback, normalize};
+})();
+
+
+/* ============ command bar: typed or spoken ============ */
+function cmdCtx(){
+  return {
+    lib:S.lib, spot:S.spot, spotLabel,
+    playDef:n=>playDef(n),
+    quickNames:S.lib.plays.filter(p=>p.t==="quick").map(p=>p.n),
+    derived:DERIVED, results:RESULTS
+  };
+}
+let LAST_CALL=null, SEG=null;          // SEG = which segment the next typed line or hold is aimed at
+
+function clearSegment(scope){
+  if(scope==="call"){ S.form=null; S.motion=null; S.tags=[]; S.play=null; S.mod=null; S.src=null; }
+  if(scope==="def"){ S.front=null; S.cov=null; S.covTag=null; S.blitz=false; }
+  if(scope==="result"){ S.res=null; S.pad.d=""; }
+}
+function paintSegments(){
+  const c=callText(S.form,S.tags,S.play,S.mod,S.motion);
+  const d=defText(S.front,S.cov,S.covTag,S.blitz);
+  const y=padYard();
+  const r=[S.res, y!==null?spotLabel(y):null].filter(Boolean).join(" · ");
+  const set=(id,val,ph)=>{ const e=$(id); e.textContent=val||ph; e.className="v"+(val?"":" empty"); };
+  set("#seg1v",c,"formation · motion · play");
+  set("#seg2v",d,"front · coverage · blitz");
+  set("#seg3v",r,"result · ball spot");
+  $("#seg1").dataset.done=String(!!S.play); $("#seg2").dataset.done=String(!!(S.front||S.cov));
+  $("#seg3").dataset.done=String(!!(S.res||y!==null));
+  ["seg1","seg2","seg3"].forEach((id,i)=>{ $("#"+id).dataset.sel=String(SEG===["call","def","result"][i]); });
+}
+
+function applyCommand(text, scope){
+  text=(text||"").trim(); if(!text) return;
+  const ctx=cmdCtx();
+  const o=CMD.parse(text,ctx,scope||null);
+  const rb=$("#readback");
+
+  // commands first
+  if(o.cmd==="undo"){ $("#undoBtn").click(); rb.className="readback"; rb.textContent="Undone"; say("undone"); return; }
+  if(o.cmd==="fix"){ const last=[...S.rows].reverse().find(r=>!r.pen);
+    if(last){ fixPlay(last); rb.className="readback"; rb.textContent="FIXING play "+last.seq+" — say what's different, e.g. \"rush their 37\""; say("fixing play "+last.seq); }
+    else { rb.textContent="Nothing to fix yet"; } return; }
+  if(o.cmd==="drive"){ posSheet(); rb.textContent="New drive — set the spot"; return; }
+  if(o.cmd==="clear"){ EDIT=null; S.form=null; S.tags=[]; clearCall(); render(); rb.textContent="Cleared"; return; }
+  if(o.cmd==="same"){ const last=[...S.rows].reverse().find(r=>!r.pen); if(last){ o.form=o.form||last.form; o.play=o.play||last.play; o.mod=o.mod||last.mod; o.src=o.src||last.type; } }
+  if(o.res==="Penalty" && !o.play && o.spot===null){ penSheet(); rb.className="readback"; rb.textContent="Penalty — fill in the sheet"; return; }
+
+  if(scope){
+    // a segment hold replaces that segment — say it again and the old one is gone
+    const got = scope==="call" ? (o.form||o.play||o.motion||o.tags.length)
+              : scope==="def" ? (o.front||o.cov||o.covTag||o.blitz!==null)
+              : (o.res||o.spot!==null||o.gain!==null||o.hash);
+    if(!got){ rb.className="readback err"; rb.textContent="Didn't catch a "+({call:"call",def:"front or coverage",result:"result"})[scope]+" in that — hold and say it again"+
+      (o.unknown.length?"  (heard: "+o.unknown.join(" ")+")":""); return; }
+    clearSegment(scope);
+  }
+  // apply what was said onto the current entry
+  if(o.form) S.form=o.form;
+  if(o.motion) S.motion=o.motion;
+  if(o.tags.length) S.tags=[...new Set([...S.tags,...o.tags])];
+  if(o.play){ S.play=o.play; S.src=o.src||playType(o.play); S.mod=null; }
+  if(o.mod) S.mod=o.mod;
+  if(o.hash) S.hash=o.hash;
+  if(o.res) S.res=o.res;
+  if(o.front) S.front=o.front;
+  if(o.cov) S.cov=o.cov;
+  if(o.covTag) S.covTag=o.covTag;
+  if(o.blitz!==null) S.blitz=o.blitz;
+  if(o.spot!==null){ const y=Math.max(0,Math.min(100,o.spot)); S.pad.side = y<=50?"own":"opp"; S.pad.d = String(y<=50?y:100-y); }
+
+  const text2=CMD.readback(o,ctx) || "Didn't catch a call in that";
+  const unknown = o.unknown.length ? "  (ignored: "+o.unknown.join(" ")+")" : "";
+  render();
+
+  if(scope){
+    const ready = S.play && (S.res || padYard()!==null);
+    rb.className="readback"+(ready?" ok":"");
+    rb.textContent = (scope==="call"?"CALL  ":scope==="def"?"DEFENSE  ":"RESULT  ")+text2+unknown+
+      (ready ? "   —  press LOG PLAY" : "");
+    say(shortSay(o));
+    return;
+  }
+
+  // typed all-at-once: a play plus a result or a spot is a complete play, log it
+  const haveOutcome = S.res || padYard()!==null;
+  if(S.play && haveOutcome && o.cmd!=="hold"){
+    rb.className="readback ok"; rb.textContent=(EDIT!==null?"FIXED  ":"LOGGED  ")+callText(S.form,S.tags,S.play,S.mod)+" · "+(S.res||"")+
+      (padYard()!==null?" · "+spotLabel(padYard()):"")+unknown;
+    say(shortSay(o));
+    commit();
+  } else if(S.play){
+    rb.className="readback"; rb.textContent="SET  "+text2+"  — waiting for the result"+unknown;
+    say(shortSay(o));
+  } else {
+    rb.className="readback"+(o.unknown.length&&!o.form&&!o.front&&!o.cov?" err":"");
+    rb.textContent=text2+unknown;
+    if(o.form||o.front||o.cov||o.hash) say(shortSay(o));
+  }
+}
+function shortSay(o){
+  const bits=[o.form,o.play,o.mod].filter(Boolean);
+  if(o.res) bits.push(o.res.toLowerCase());
+  if(o.spot!==null) bits.push(spotLabel(o.spot).toLowerCase().replace("own","own ").replace("opp","their "));
+  if(o.front) bits.push(o.front);
+  if(o.cov) bits.push("cover "+o.cov+(o.covTag?" "+o.covTag:""));
+  if(o.blitz) bits.push("blitz");
+  return bits.join(", ");
+}
+
+/* read back out loud, when turned on */
+let SAY_ON=false;
+function say(t){
+  if(!SAY_ON || !("speechSynthesis" in window) || !t) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1.15; speechSynthesis.speak(u); }catch(e){}
+}
+
+/* fix the last play (from v8) */
+function fixPlay(r){
+  EDIT=r.id; S.form=r.form; S.motion=r.motion||null; S.tags=[...(r.tags||[])]; S.play=r.play; S.mod=r.mod||null;
+  S.src=r.type||null; S.res=r.res||null; S.hash=r.hash||S.hash;
+  S.front=r.front||null; S.cov=r.cov||null; S.covTag=r.covTag||null; S.blitz=!!r.blitz; S.note=r.note||"";
+  S.pad.side = r.to<=50?"own":"opp"; S.pad.d = String(r.to<=50?r.to:100-r.to);
+  render(); window.scrollTo({top:0,behavior:"smooth"}); toast("Fixing play "+r.seq+" — change what's wrong, then SAVE CHANGES");
+}
+
+/* ============ microphone ============
+   Two engines, picked by device and switchable in MIC SETTINGS:
+     "press" — a short recognition session per hold, stopped on release.
+               The Android-native way (same as the keyboard mic). Default on phones.
+     "gate"  — one session kept open all game; a hold decides which words to keep.
+               Default on laptops, where it's the path that was working.
+   The mic stream is only held open on a file:// page, to stop repeat prompts.
+   Every event is written to the MIC TEST log so a screenshot shows what happened.
+   ==================================== */
+const Mic=(()=>{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  let engine = "gate";
+  try{ engine = localStorage.getItem("wc-gd-mic") || (isAndroid||isIOS ? "press" : "gate"); }catch(e){}
+  let rec=null, stream=null, armed=false, live=false, holding=false, holdScope=null, restartT=null, arming=false;
+  let local=false, buf="", bufFinal="", graceT=null, lastLiveFinal="", sessionActive=false;
+  const supported = !!SR;
+  const rb=()=>$("#readback");
+  const modeTxt=()=> (local ? "on-device" : "cloud")+" · "+engine;
+  const LOG=[];
+  function log(ev,extra){ const t=new Date(); const ts=t.toLocaleTimeString([],{hour12:false})+"."+String(t.getMilliseconds()).padStart(3,"0");
+    LOG.push(ts+"  "+ev+(extra?"  "+extra:"")); if(LOG.length>80) LOG.shift();
+    const el=$("#micLog"); if(el){ el.textContent=LOG.slice(-30).join("\n"); el.scrollTop=el.scrollHeight; } }
+
+  function paint(){
+    const m=$("#micBtn");
+    m.dataset.on=String(holding && !holdScope); m.dataset.live=String(live);
+    m.innerHTML = live ? "LIVE<br>MIC" : ((holding&&!holdScope) ? "LISTENING" : (armed ? "ALL<br>AT ONCE" : "TAP TO<br>ENABLE MIC"));
+    ["call","def","result"].forEach((sc,i)=>{ const e=$("#seg"+(i+1)); if(e) e.dataset.on=String(holding && holdScope===sc); });
+    $("#liveBtn").setAttribute("aria-pressed",String(live));
+    const mm=$("#micMode"); if(mm) mm.textContent = armed ? ("MIC: "+modeTxt().toUpperCase()+(sessionActive?" · OPEN":"")) : "";
+  }
+
+  async function pickLocal(){
+    try{
+      if(SR.available){
+        const st=await SR.available({langs:["en-US"],processLocally:true}); log("on-device check",st);
+        if(st==="available") return true;
+        if(st==="downloadable" && SR.install){
+          rb().className="readback"; rb().textContent="Downloading the on-device speech model once (about a minute)…";
+          return !!(await SR.install({langs:["en-US"],processLocally:true}));
+        }
+      }
+    }catch(e){ log("on-device check failed",String(e)); }
+    return false;
+  }
+
+  function makeRec(continuous){
+    const r=new SR(); r.lang="en-US"; r.interimResults=true; r.continuous=continuous; r.maxAlternatives=1;
+    if(local){ try{ r.processLocally=true; }catch(e){} }
+    r.onstart=()=>{ sessionActive=true; log("start"); paint(); };
+    r.onaudiostart=()=>log("audio");
+    r.onspeechstart=()=>log("speech");
+    r.onresult=e=>{
+      let interim="", fin="";
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const t=e.results[i][0].transcript;
+        if(e.results[i].isFinal) fin+=t; else interim+=t;
+      }
+      log(fin.trim()?"FINAL":"interim", (fin||interim).trim());
+      const listening = holding || graceT!==null || engine==="press";
+      if(listening && !live){
+        if(interim){ buf=interim; $("#cmdIn").value=interim; }
+        if(fin.trim()){ bufFinal=(bufFinal+" "+fin).trim(); $("#cmdIn").value=bufFinal; }
+        if(graceT!==null && fin.trim()){ clearTimeout(graceT); graceT=null; releaseFlush(); }
+        return;
+      }
+      if(live){
+        if(interim) $("#cmdIn").value=interim;
+        const f=fin.trim();
+        if(f && f!==lastLiveFinal){ lastLiveFinal=f; $("#cmdIn").value=""; applyCommand(f,null); }
+      }
+    };
+    r.onerror=e=>{
+      log("error",e.error);
+      if(e.error==="no-speech"||e.error==="aborted") return;
+      if(e.error==="network"){ if(holding||graceT!==null){ clearTimeout(graceT); graceT=null; releaseFlush("network"); } return; }
+      rb().className="readback err";
+      rb().textContent = e.error==="not-allowed" ? "Microphone blocked. Allow it for this page and reload."
+        : e.error==="audio-capture" ? "No microphone could be opened — is another app using it?"
+        : e.error==="service-not-allowed" ? "Speech service not available in this browser — use Chrome, or use the keyboard mic in the text box."
+        : "Mic error: "+e.error;
+    };
+    r.onend=()=>{
+      sessionActive=false; log("end"); paint();
+      if(engine==="press"){
+        if(holding||graceT!==null){ clearTimeout(graceT); graceT=null; holding=false; releaseFlush(); }
+        else if(live && armed){ clearTimeout(restartT); restartT=setTimeout(()=>startSession(true), 250); }
+        return;
+      }
+      if(!armed) return;
+      clearTimeout(restartT); restartT=setTimeout(()=>startSession(true), 200);   // gate: keep it open
+    };
+    return r;
+  }
+  function startSession(continuous){
+    if(!armed) return;
+    try{ if(rec){ rec.onend=null; rec.abort(); } }catch(e){}
+    rec=makeRec(continuous);
+    try{ rec.start(); log("start() called", continuous?"continuous":"one-shot"); }catch(e){ log("start() threw",String(e)); }
+    paint();
+  }
+
+  function releaseFlush(reason){
+    const sc=holdScope; holdScope=null;
+    const t=(bufFinal||buf).trim(); buf=""; bufFinal="";
+    paint(); log("apply",(t||"(nothing)")+(sc?"  ["+sc+"]":""));
+    if(!t){ rb().className="readback err"; rb().textContent="Didn't hear anything — hold a little longer and start talking right away"; return; }
+    $("#cmdIn").value="";
+    applyCommand(t, sc);
+    if(reason==="network"){ rb().textContent += "   (connection dropped — used what it heard)"; }
+  }
+
+  async function arm(){
+    if(armed) return true;
+    log("arm", navigator.userAgent.slice(0,60));
+    if(location.protocol==="file:" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); log("stream held (file page)"); }
+      catch(e){
+        log("getUserMedia failed",e&&e.name);
+        if(e && e.name==="NotAllowedError"){
+          rb().className="readback err";
+          rb().textContent="Microphone blocked for this page. Click the lock or camera icon in the address bar and allow it, then reload.";
+          return false;
+        }
+        // anything else: carry on — speech recognition may still open the mic itself
+      }
+    }
+    if(Cloud.inFrame){ rb().className="readback err";
+      rb().textContent="The microphone can't work inside the Apps Script page. Open the tracker as its own page and use Connect Sheet."; return false; }
+    local = await pickLocal();
+    armed=true;
+    if(engine==="gate") startSession(true);
+    rb().className="readback";
+    rb().textContent = "Mic ready ("+modeTxt()+") — hold a segment and talk";
+    paint();
+    return true;
+  }
+  function disarm(){
+    armed=false; live=false; holding=false; holdScope=null; clearTimeout(restartT); clearTimeout(graceT); graceT=null;
+    if(rec){ try{ rec.onend=null; rec.abort(); }catch(e){} rec=null; }
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    sessionActive=false; paint(); log("mic off");
+  }
+  return {
+    supported, isAndroid, isIOS,
+    get armed(){ return armed; },
+    get engine(){ return engine; },
+    setEngine(e){ engine=e; try{ localStorage.setItem("wc-gd-mic",e); }catch(_){} if(armed){ disarm(); } paint(); },
+    logText(){ return LOG.join("\n"); },
+    async holdStart(scope){
+      log("hold", scope||"all");
+      if(!armed){
+        if(arming) return; arming=true; const ok=await arm(); arming=false; if(!ok) return;
+        if(engine==="press"){ /* fall through — on a phone the first press can talk right away */ }
+        else { rb().className="readback"; rb().textContent="Mic is ready — hold again and talk"; return; }
+      }
+      if(holding) return;
+      clearTimeout(graceT); graceT=null;
+      holdScope=scope||null; holding=true; buf=""; bufFinal=""; paint();
+      rb().className="readback"; rb().textContent="Listening…";
+      if(engine==="press") startSession(false);
+      else if(!sessionActive) startSession(true);
+    },
+    holdEnd(){
+      if(!holding) return;
+      log("release");
+      holding=false; paint();
+      clearTimeout(graceT);
+      if(engine==="press"){
+        graceT=setTimeout(()=>{ graceT=null; releaseFlush(); }, 1500);   // stop() below normally ends it sooner
+        try{ rec && rec.stop(); }catch(e){}
+        return;
+      }
+      if(bufFinal.trim()){ graceT=null; releaseFlush(); return; }
+      graceT=setTimeout(()=>{ graceT=null; releaseFlush(); }, 900);
+    },
+    async toggleLive(){
+      if(live){ live=false; if(engine==="press"){ try{ rec&&rec.abort(); }catch(e){} } paint(); return; }
+      if(!(await arm())) return;
+      live=true; lastLiveFinal=""; paint();
+      if(engine==="press" || !sessionActive) startSession(true);
+    },
+    off: disarm
+  };
+})();
+
+/* typed or dictated into the box: the keyboard's own mic works on every phone.
+   When text arrives and then stops changing for a moment, it is applied to the aimed segment. */
+(function dictation(){
+  let t=null;
+  const inp=$("#cmdIn");
+  inp.addEventListener("input",()=>{
+    clearTimeout(t);
+    if(!DICT_AUTO) return;
+    const v=inp.value.trim(); if(!v) return;
+    t=setTimeout(()=>{ if(inp.value.trim()===v && document.activeElement===inp){ inp.value=""; applyCommand(v, SEG); } }, 1400);
+  });
+})();
+let DICT_AUTO=false;
+try{ DICT_AUTO = localStorage.getItem("wc-gd-dict")==="1" || (Mic.isAndroid||Mic.isIOS); }catch(e){}
+
+function micSheet(){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>MIC SETTINGS &amp; TEST</h3>
+    <p class="lab">HOW HOLD-TO-TALK LISTENS</p>
+    <div class="row" id="msEng">
+      <button class="chip grow" data-v="press" aria-pressed="${Mic.engine==="press"}">SHORT SESSION PER HOLD<br><small style="font-weight:600">phones · like the keyboard mic</small></button>
+      <button class="chip grow" data-v="gate" aria-pressed="${Mic.engine==="gate"}">ONE SESSION ALL GAME<br><small style="font-weight:600">laptops</small></button>
+    </div>
+    <label class="ck" style="margin-top:8px"><input type="checkbox" id="msDict" ${DICT_AUTO?"checked":""}> Auto-apply what the keyboard mic types into the box (1.4 s after it stops)</label>
+    <p class="lab" style="margin-top:12px">MIC TEST — hold, say "joker badger", let go</p>
+    <button class="seg" id="msHold" style="width:100%;min-height:64px"><span class="n">T</span><span class="t">HOLD TO TEST</span><div class="v empty" id="msHoldV">what it hears shows here</div></button>
+    <pre id="micLog" style="background:#0A1428;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;line-height:1.4;max-height:220px;overflow:auto;color:#9FB0C6;white-space:pre-wrap;margin:8px 0"></pre>
+    <div class="btnrow"><button class="bar2" id="msCopy">Copy log</button><button class="bar2" id="msClear">Clear log</button></div>
+    <p class="mini">Device: ${esc(navigator.userAgent.slice(0,90))}<br>Page: ${location.protocol==="file:"?"opened from a file":location.origin}<br>
+    Speech recognition: ${Mic.supported?"available":"NOT available in this browser"}</p>
+    <p class="mini">If nothing works, the keyboard mic always does: tap a segment to aim it, tap in the box, tap the mic key on your keyboard, say the call.</p>
+  `);
+  $("#msEng").onclick=e=>{ const b=e.target.closest("button"); if(!b) return;
+    [...$("#msEng").children].forEach(x=>x.setAttribute("aria-pressed",String(x===b))); Mic.setEngine(b.dataset.v); toast("Mic mode: "+b.dataset.v); };
+  $("#msDict").onchange=e=>{ DICT_AUTO=e.target.checked; try{ localStorage.setItem("wc-gd-dict",DICT_AUTO?"1":"0"); }catch(_){} };
+  const h=$("#msHold");
+  h.addEventListener("pointerdown",e=>{ e.preventDefault(); try{ h.setPointerCapture(e.pointerId); }catch(_){} Mic.holdStart("call"); });
+  ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>h.addEventListener(ev,()=>Mic.holdEnd()));
+  h.addEventListener("contextmenu",e=>e.preventDefault());
+  $("#micLog").textContent=Mic.logText();
+  $("#msCopy").onclick=()=>{ try{ navigator.clipboard.writeText(Mic.logText()); toast("Log copied"); }catch(e){ toast("Select the log and copy it"); } };
+  $("#msClear").onclick=()=>{ $("#micLog").textContent=""; };
+}
+
+function helpSheet(){
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>WHAT YOU CAN SAY OR TYPE</h3>
+    <div class="prev">The three-step flow:<br>
+      <b>Hold 1</b> and say the call — "Trio 2 Jet Badger Flint".<br>
+      <b>Hold 2</b> when they're set — "Over cover 4, blitz".<br>
+      <b>Hold 3</b> after the whistle — "Rush, their 42" or "Incomplete".<br>
+      Then <b>LOG PLAY</b>. Hold any segment again to redo just that part. Tap a segment (don't hold) to aim the keyboard at it.</div>
+    <div class="prev">Before the snap:<br><b>"Joker Badger"</b> · <b>"Trio Mesh 3"</b> · <b>"Rifle Far Wisconsin one tech"</b> · <b>"Jacks 3 down"</b> · <b>"Pitt Detroit"</b></div>
+    <div class="prev">While they line up:<br><b>"Over cover 3 sky"</b> · <b>"Under, cover 2 man, blitz"</b> · <b>"Bear quarters"</b> · <b>"Left hash"</b></div>
+    <div class="prev">After the play — this logs it:<br><b>"Rush, 34"</b> · <b>"Complete, their 42"</b> · <b>"Incomplete"</b> · <b>"Gain of 7"</b> · <b>"Loss 3"</b> · <b>"Sack"</b> · <b>"Rush touchdown"</b> · <b>"Pick"</b> · <b>"Penalty"</b></div>
+    <div class="prev">All at once works too:<br><b>"Joker Badger over cover 3 rush 34"</b></div>
+    <div class="prev">Fixing:<br><b>"Undo"</b> takes the last thing back · <b>"Fix last"</b> reopens the last play · <b>"Same"</b> repeats the last call · <b>"New drive"</b></div>
+    <p class="mini">A bare number is the yard line on the side the ball is already on. Say "own" or "their" to be explicit.
+    A number right after Shallow, Mesh, Choice or Dime is the route tag. Formation stays set between snaps, so most snaps you just say the play.</p>
+    <p class="mini">On a laptop you can hold the <b>1</b>, <b>2</b> or <b>3</b> key instead of the button, and hold <b>space</b> for all at once.</p>
+    <p class="mini">Mic tips: the first tap on the mic button asks for permission once, then the mic stays open for the whole game — hold the button while you talk, let go when you're done. On a laptop with a headset, LIVE MIC listens all game without holding anything. READ BACK speaks what it heard so you never look down.</p>
+    <p class="mini">If the browser asks for the microphone every single time, it's because the file was opened straight from your computer and Chrome won't remember the answer for a local file. Put it at an https address (GitHub Pages is free) and it asks once, ever.</p>
+  `);
+}
+
+
+/* ============ set the situation by hand ============ */
+function sitSheet(focus){
+  const gtg=S.toGain>=100;
+  const dist=Math.max(1,Math.round((gtg?100:S.toGain)-S.spot));
+  const side=S.spot<=50?"own":"opp";
+  const yd=S.spot<=50?S.spot:100-S.spot;
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>SET DOWN, DISTANCE &amp; BALL</h3>
+
+    <p class="lab">DOWN</p>
+    <div class="row" id="sDown">
+      ${[1,2,3,4].map(d=>'<button class="chip grow" data-v="'+d+'" aria-pressed="'+(S.down===d)+'">'+ordinal(d)+'</button>').join("")}
+    </div>
+
+    <p class="lab" style="margin-top:11px">DISTANCE</p>
+    <div class="row" style="margin-bottom:8px" id="sDistQuick">
+      ${[1,2,3,5,7,10,15].map(d=>'<button class="chip sm grow" data-v="'+d+'">'+d+'</button>').join("")}
+      <button class="chip sm grow tag" data-v="goal" id="sGoal" aria-pressed="${gtg}">GOAL</button>
+    </div>
+    <input class="fld" id="sDist" inputmode="numeric" value="${gtg?'':dist}" placeholder="Yards to go">
+
+    <p class="lab" style="margin-top:11px">BALL ON</p>
+    <div class="side" style="margin-bottom:8px">
+      <button id="sOwn" aria-pressed="${side==='own'}">OUR SIDE</button>
+      <button id="sOpp" aria-pressed="${side==='opp'}">THEIR SIDE</button>
+    </div>
+    <input class="fld" id="sSpot" inputmode="numeric" value="${yd}" placeholder="Yard line">
+
+    <div class="prev" id="sPrev"></div>
+    <button class="logbtn" id="sGo">SET IT</button>
+    <p class="mini">You can also drag the ball on the field strip to move the spot without opening this.</p>
+  `);
+
+  let sd=side, goal=gtg;
+  const read=()=>{
+    let y=parseInt($("#sSpot").value,10); if(isNaN(y)) y=20;
+    y=Math.max(1,Math.min(50,y));
+    const spot = sd==="own"?y:100-y;
+    let d=parseInt($("#sDist").value,10);
+    if(goal||isNaN(d)||d<1) d=null;
+    const tg = (goal||d===null||spot+d>=100) ? 100 : spot+d;
+    return {spot,tg,goalToGo:tg>=100};
+  };
+  const upd=()=>{
+    const r=read();
+    const dn=+($("#sDown").querySelector('[aria-pressed=true]')||{dataset:{v:S.down}}).dataset.v;
+    $("#sPrev").textContent = ordinal(dn)+" & "+(r.goalToGo?"Goal":Math.max(1,r.tg-r.spot))+
+                              "  ·  ball on "+spotLabel(r.spot);
+    $("#sGoal").setAttribute("aria-pressed",String(goal));
+    $("#sOwn").setAttribute("aria-pressed",String(sd==="own"));
+    $("#sOpp").setAttribute("aria-pressed",String(sd==="opp"));
+  };
+  $("#sDown").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+    [...$("#sDown").children].forEach(x=>x.setAttribute("aria-pressed",String(x===b))); upd();};
+  $("#sDistQuick").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.v==="goal"){ goal=true; $("#sDist").value=""; }
+    else { goal=false; $("#sDist").value=b.dataset.v; } upd();};
+  $("#sDist").oninput=()=>{ goal=false; upd(); };
+  $("#sSpot").oninput=upd;
+  $("#sOwn").onclick=()=>{ sd="own"; upd(); };
+  $("#sOpp").onclick=()=>{ sd="opp"; upd(); };
+  upd();
+  $("#sGo").onclick=()=>{
+    snap();
+    const r=read();
+    S.down = +$("#sDown").querySelector('[aria-pressed=true]').dataset.v;
+    S.spot = r.spot; S.toGain = r.tg;
+    closeSheet(); save(); render(); toast("Situation set");
+  };
+  setTimeout(()=>{ const f=$(focus==="spot"?"#sSpot":"#sDist"); if(f){ f.focus(); f.select&&f.select(); } },90);
+}
+
+/* ============ summary ============ */
+function pct(a,b){ return b?Math.round(a/b*100):0; }
+function group(rows,fn){
+  const m={};
+  rows.forEach(r=>{ const k=fn(r); if(k==null)return;
+    (m[k]=m[k]||[]).push(r); });
+  return m;
+}
+function statBlock(rows){
+  const p=rows.length, yds=rows.reduce((a,r)=>a+r.gain,0);
+  const suc=rows.filter(r=>isSuccess(r)).length;
+  return {p,yds,ypp:p?(yds/p):0,suc,sp:pct(suc,p)};
+}
+function tableOf(map,label){
+  const keys=Object.keys(map).sort((a,b)=>statBlock(map[b]).sp-statBlock(map[a]).sp);
+  if(!keys.length) return '<div class="empty">Nothing logged for this yet.</div>';
+  let h='<table class="sum"><tr><th>'+label+'</th><th style="text-align:right">PLAYS</th><th style="text-align:right">YDS</th><th style="text-align:right">AVG</th><th style="text-align:right">SUCCESS</th></tr>';
+  keys.forEach(k=>{ const s=statBlock(map[k]);
+    const cls = s.p>=3 ? (s.sp>=50?"hi":(s.sp<=25?"lo":"")) : "";
+    h+='<tr class="'+cls+'"><td>'+k+'<div class="bar"><i style="width:'+s.sp+'%"></i></div></td>'+
+       '<td class="num">'+s.p+'</td><td class="num">'+s.yds+'</td>'+
+       '<td class="num">'+s.ypp.toFixed(1)+'</td><td class="num">'+s.sp+'%</td></tr>';
+  });
+  return h+'</table>';
+}
+function sumSheet(){
+  const all=S.rows.filter(r=>!r.pen&&!r.ns);
+  const pens=S.rows.filter(r=>r.pen||r.ns);
+  if(!all.length){ openSheet('<button class="close" data-x>Close</button><h3>HALFTIME SUMMARY</h3><div class="empty">No plays logged yet.</div>'); return; }
+  const s=statBlock(all);
+  const runs=all.filter(r=>!isPassy(r.type)), passes=all.filter(r=>isPassy(r.type));
+  const rs=statBlock(runs), ps=statBlock(passes);
+  const expl=all.filter(isExplosive).sort((a,b)=>b.gain-a.gain);
+  const neg=all.filter(r=>r.gain<0||r.turnover).sort((a,b)=>a.gain-b.gain);
+
+  const byCall=group(all,r=>callText(r.form,r.tags,r.play,r.mod,r.motion));
+  const byMotion=group(all,r=>r.motion||"No motion");
+  const byForm=group(all,r=>r.form||"—");
+  const byPlay=group(all,r=>(r.play||"—")+(r.mod?" "+r.mod:""));
+  const byCat=group(all,r=>TYPENAME[r.type]||r.type);
+  const byDown=group(all,r=>ordinal(r.down)+" down");
+  const byHash=group(all,r=>({L:"Left hash",M:"Middle",R:"Right hash"})[r.hash]||r.hash);
+  const byFront=group(all,r=>r.front||null);
+  const byCov=group(all,r=>r.cov?("Cover "+r.cov+(r.covTag?" "+r.covTag:"")):null);
+  const byBlitz=group(all,r=>(r.front||r.cov||r.blitz)?(r.blitz?"Blitz":"No blitz"):null);
+
+  const working=Object.entries(byCall).filter(([k,v])=>v.length>=2)
+    .map(([k,v])=>[k,statBlock(v)]).sort((a,b)=>b[1].sp-a[1].sp);
+
+  const list=(arr)=>arr.length?arr.slice(0,8).map(r=>
+    '<div class="logrow"><span class="dn">Q'+r.qtr+' '+ordinal(r.down)+'</span>'+
+    '<span class="cl">'+callText(r.form,r.tags,r.play,r.mod,r.motion)+'</span>'+
+    '<span class="yd" style="color:'+(r.gain<0?"var(--stop)":"var(--go)")+'">'+(r.gain>0?"+"+r.gain:r.gain)+'</span></div>'
+  ).join(""):'<div class="empty">None.</div>';
+
+  openSheet(`
+    <button class="close" data-x>Close</button>
+    <h3>HALFTIME SUMMARY${S.opp?" · vs "+S.opp.toUpperCase():""}</h3>
+    <div class="tiles">
+      <div class="tile"><div class="k">PLAYS</div><div class="v">${s.p}</div></div>
+      <div class="tile"><div class="k">YARDS</div><div class="v">${s.yds}</div></div>
+      <div class="tile"><div class="k">PER PLAY</div><div class="v">${s.ypp.toFixed(1)}</div></div>
+      <div class="tile"><div class="k">SUCCESS</div><div class="v ${s.sp>=45?"go":(s.sp<=30?"stop":"")}">${s.sp}%</div></div>
+      <div class="tile"><div class="k">EXPLOSIVES</div><div class="v gold">${expl.length}</div></div>
+      <div class="tile"><div class="k">NEGATIVES</div><div class="v ${neg.length?"stop":""}">${neg.length}</div></div>
+      <div class="tile"><div class="k">PENALTIES</div><div class="v">${pens.length}</div></div>
+      <div class="tile"><div class="k">DRIVES</div><div class="v">${S.drive}</div></div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile"><div class="k">RUN</div><div class="v">${rs.p} <span style="font-size:13px;color:#9FB0C6">· ${rs.ypp.toFixed(1)} avg · ${rs.sp}%</span></div></div>
+      <div class="tile"><div class="k">PASS GAME</div><div class="v">${ps.p} <span style="font-size:13px;color:#9FB0C6">· ${ps.ypp.toFixed(1)} avg · ${ps.sp}%</span></div></div>
+    </div>
+
+    <h4 class="sec">WHAT'S WORKING — CALLS RUN TWICE OR MORE</h4>
+    ${working.length?'<table class="sum"><tr><th>CALL</th><th style="text-align:right">RUN</th><th style="text-align:right">AVG</th><th style="text-align:right">SUCCESS</th></tr>'+
+      working.map(([k,v])=>'<tr class="'+(v.sp>=50?"hi":(v.sp<=25?"lo":""))+'"><td>'+k+'<div class="bar"><i style="width:'+v.sp+'%"></i></div></td><td class="num">'+v.p+'</td><td class="num">'+v.ypp.toFixed(1)+'</td><td class="num">'+v.sp+'%</td></tr>').join("")+'</table>'
+      :'<div class="empty">Nothing has been called twice yet.</div>'}
+
+    <h4 class="sec">EXPLOSIVES — 12+ RUN, 16+ PASS</h4>${list(expl)}
+    <h4 class="sec">NEGATIVE PLAYS &amp; TURNOVERS</h4>${list(neg)}
+
+    <h4 class="sec">BY BUCKET</h4>${tableOf(byCat,"BUCKET")}
+    <h4 class="sec">BY PLAY</h4>${tableOf(byPlay,"PLAY")}
+    <h4 class="sec">BY FORMATION</h4>${tableOf(byForm,"FORMATION")}
+    <h4 class="sec">BY MOTION</h4>${tableOf(byMotion,"MOTION")}
+    <h4 class="sec">BY DOWN</h4>${tableOf(byDown,"DOWN")}
+    <h4 class="sec">BY HASH</h4>${tableOf(byHash,"HASH")}
+    ${(()=>{const nn=all.filter(r=>r.note);
+      return nn.length?'<h4 class="sec">NOTES</h4>'+nn.map(r=>
+        '<div class="logrow"><span class="dn">Q'+r.qtr+' '+ordinal(r.down)+'</span>'+
+        '<span class="cl" style="white-space:normal">'+callText(r.form,r.tags,r.play,r.mod)+
+        '<div style="font-size:12px;color:#F4B740;font-weight:700;margin-top:2px">'+esc(r.note)+'</div></span>'+
+        '<span class="yd">'+(r.gain>0?"+"+r.gain:r.gain)+'</span></div>').join(""):"";})()}
+    <h4 class="sec">VS THEIR FRONT</h4>${tableOf(byFront,"FRONT")}
+    <h4 class="sec">VS THEIR COVERAGE</h4>${tableOf(byCov,"COVERAGE")}
+    <h4 class="sec">VS PRESSURE</h4>${tableOf(byBlitz,"")}
+
+    <p class="mini">Success = 50% of the distance on 1st, 70% on 2nd, all of it on 3rd and 4th. Penalties are logged but left out of the play averages.</p>
+    <div class="btnrow"><button class="bar2" onclick="window.print()">Print this page</button></div>
+  `);
+}
+
+/* ============ export / import ============ */
+function dl(name,text,type){
+  const b=new Blob([text],{type:type||"text/plain"}), u=URL.createObjectURL(b);
+  const a=document.createElement("a"); a.href=u; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),800);
+}
+function csv(){
+  const h=["Seq","Qtr","Drive","Down","Dist","Hash","Formation","Motion","Tags","Play","Type","Front","Coverage","Blitz","From","To","Gain","Result","Success","Explosive","Penalty","Note"];
+  const rows=S.rows.map(r=>[r.seq,r.qtr,r.drive,r.pen?"":r.down,r.pen?"":r.dist,r.hash||"",r.form||"",r.motion||"",(r.tags||[]).join(" "),
+    r.pen?(r.note||"PENALTY"):((r.play||"")+(r.mod?" "+r.mod:"")),r.pen?"PEN":r.type,
+    r.front||"",r.cov?("Cover "+r.cov+(r.covTag?" "+r.covTag:"")):"",r.blitz?"Y":"",
+    spotLabel(r.from),spotLabel(r.to),r.gain,
+    r.res||"",(r.pen||r.ns)?"":(isSuccess(r)?"Y":"N"),(r.pen||r.ns)?"":(isExplosive(r)?"Y":""),r.pen?"Y":"",r.pen?"":(r.note||"")]);
+  const esc=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  dl("WC_"+(S.opp||"game").replace(/\W+/g,"_")+"_plays.csv",
+     [h,...rows].map(r=>r.map(esc).join(",")).join("\n"),"text/csv");
+}
+
+/* ============ build static UI ============ */
+(function build(){
+  const q=$("#qtr");
+  [1,2,3,4].forEach(n=>{ const b=document.createElement("button"); b.textContent="Q"+n; b.dataset.q=n;
+    b.onclick=()=>{ S.qtr=n; save(); render(); }; q.appendChild(b); });
+
+  const t=$("#tabs");
+  TYPES.forEach(([k,l])=>{ const b=document.createElement("button"); b.textContent=l; b.dataset.t=k;
+    b.onclick=()=>{ S.tab=k; render(); }; t.appendChild(b); });
+
+  const pad=$("#pad");
+  const keys=["1","2","3","4","5","6","7","8","9","CLR","0","DEL"];
+  keys.forEach(k=>{ const b=document.createElement("button"); b.textContent=k;
+    if(k==="CLR"||k==="DEL") b.className="util";
+    b.onclick=()=>{
+      if(k==="CLR") S.pad.d="";
+      else if(k==="DEL") S.pad.d=S.pad.d.slice(0,-1);
+      else { if(S.pad.d.length>=2) S.pad.d=k; else S.pad.d+=k; if(+S.pad.d>50) S.pad.d=k; }
+      render();
+    };
+    pad.appendChild(b); });
+
+  const fr=$("#frontRow");
+  FRONTS.forEach(f=>{ const b=document.createElement("button"); b.className="chip grow"; b.textContent=f.toUpperCase();
+    b.dataset.f=f; b.onclick=()=>{ S.front=(S.front===f?null:f); render(); }; fr.appendChild(b); });
+
+  const cv=$("#covRow");
+  COVERAGES.forEach(c=>{ const b=document.createElement("button"); b.className="chip grow"; b.textContent=c;
+    b.dataset.c=c; b.onclick=()=>{ const off=S.cov===c; S.cov=off?null:c; S.covTag=null; render(); }; cv.appendChild(b); });
+
+  const nq=$("#noteQuick");
+  ["Missed assignment","MIKE ID","Pressure","Free rusher","Great block",
+   "Ball placement","Wrong depth","Come back to this"].forEach(t=>{
+    const b=document.createElement("button"); b.className="chip sm"; b.textContent=t;
+    b.onclick=()=>{ const cur=$("#noteIn").value.trim();
+      S.note = cur ? (cur.split(/\s*·\s*/).includes(t) ? cur : cur+" · "+t) : t;
+      $("#noteIn").value=S.note; $("#noteIn").focus(); };
+    nq.appendChild(b); });
+
+  const qk=$("#quick");
+  RESULTS.forEach(r=>{ const b=document.createElement("button"); b.textContent=r.n.toUpperCase(); b.dataset.r=r.n;
+    b.onclick=()=>{ S.res=(S.res===r.n?null:r.n); render(); };
+    qk.appendChild(b); });
+})();
+
+function buildLib(){
+  const f=$("#formRow"); f.innerHTML="";
+  S.lib.forms.forEach(n=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=n; b.dataset.f=n;
+    b.onclick=()=>{ S.form=(S.form===n?null:n); render(); }; f.appendChild(b); });
+
+  const g=$("#tagRow"); g.innerHTML="";
+  S.lib.tags.forEach(n=>{ const b=document.createElement("button"); b.className="chip sm tag"; b.textContent=n; b.dataset.t=n;
+    b.onclick=()=>{ S.tags = S.tags.includes(n)?S.tags.filter(x=>x!==n):[...S.tags,n]; render(); }; g.appendChild(b); });
+
+  const mr=$("#motionRow"); mr.innerHTML="";
+  (S.lib.motions||[]).forEach(m=>{ const b=document.createElement("button"); b.className="chip sm tag"; b.textContent=m; b.dataset.m=m;
+    b.onclick=()=>{ S.motion=(S.motion===m?null:m); render(); }; mr.appendChild(b); });
+  const hr=$("#hashRow"); hr.innerHTML="";
+  [["L","LEFT"],["M","MIDDLE"],["R","RIGHT"]].forEach(function(x){
+    const b=document.createElement("button"); b.className="chip grow"; b.textContent=x[1];
+    b.dataset.h=x[0]; b.onclick=()=>{ S.hash=x[0]; hashPaint(); }; hr.appendChild(b); });
+  hashPaint();
+}
+function hashPaint(){ $$("#hashRow .chip[data-h]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.h===S.hash))); }
+
+/* ============ wiring ============ */
+$("#opp").onchange=e=>{
+  if(e.target.value==="__other"){
+    const v=(prompt("Who are we playing?")||"").trim();
+    if(!v){ buildSchedule(); return; }
+    S.opp=v;
+  } else S.opp=e.target.value;
+  buildSchedule(); save(); render();
+};
+$("#scUs").onclick=()=>{ const v=prompt("Our score",S.us); if(v!==null){S.us=parseInt(v,10)||0;save();render();} };
+$("#scThem").onclick=()=>{ const v=prompt("Their score",S.them); if(v!==null){S.them=parseInt(v,10)||0;save();render();} };
+$("#sideOwn").onclick=()=>{ S.pad.side="own"; render(); };
+$("#sideOpp").onclick=()=>{ S.pad.side="opp"; render(); };
+$("#search").oninput=renderPlays;
+$("#clearCall").onclick=()=>{ EDIT=null; S.form=null; S.tags=[]; clearCall(); render(); };
+$("#addPlay").onclick=addPlaySheet;
+$("#noteIn").oninput=e=>{ S.note=e.target.value; };
+$("#clearDef").onclick=()=>{ S.front=null; S.cov=null; S.covTag=null; S.blitz=false; render(); };
+$("#blitzChip").onclick=()=>{ S.blitz=!S.blitz; render(); };
+$("#logBtn").onclick=commit;
+$("#cmdIn").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){ e.preventDefault(); const v=e.target.value; e.target.value=""; applyCommand(v, SEG); }
+  else if(e.key==="Escape"){ e.target.value=""; }
+});
+$("#micBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); if(!Mic.supported){ $("#readback").className="readback err";
+  $("#readback").textContent="This browser has no speech recognition — use Chrome, Edge or Safari, or type the call."; return; } Mic.holdStart(null); });
+$("#micSetBtn").onclick=micSheet;
+$("#micOffBtn").onclick=()=>{ Mic.off(); $("#readback").className="readback"; $("#readback").textContent="Mic off"; };
+(function segWire(){
+  let pressT=0;
+  ["seg1","seg2","seg3"].forEach(id=>{
+    const el=$("#"+id), sc=el.dataset.seg;
+    el.addEventListener("pointerdown",e=>{ e.preventDefault(); pressT=Date.now();
+      try{ el.setPointerCapture(e.pointerId); }catch(_){}
+      if(!Mic.supported){ SEG=sc; paintSegments(); $("#cmdIn").focus(); return; }
+      Mic.holdStart(sc); });
+    const release=()=>{
+      if(!Mic.supported) return;
+      const quick = Date.now()-pressT < 250;           // a tap, not a hold: aim the keyboard at this segment
+      Mic.holdEnd();
+      if(quick){ SEG = (SEG===sc?null:sc); paintSegments(); if(SEG) $("#cmdIn").focus(); }
+    };
+    ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>el.addEventListener(ev,release));
+    el.addEventListener("contextmenu",e=>e.preventDefault());
+  });
+  // laptop: hold 1, 2 or 3 to talk into that segment; hold space for all at once
+  const keyScope={ "1":"call","2":"def","3":"result"," ":null };
+  let keyHeld=null;
+  document.addEventListener("keydown",e=>{
+    if(e.repeat || e.target.tagName==="INPUT" || $("#mask").classList.contains("on")) return;
+    if(!(e.key in keyScope) || !Mic.supported) return;
+    e.preventDefault(); keyHeld=e.key; Mic.holdStart(keyScope[e.key]);
+  });
+  document.addEventListener("keyup",e=>{ if(keyHeld!==null && e.key===keyHeld){ keyHeld=null; Mic.holdEnd(); } });
+})();
+["pointerup","pointercancel","pointerleave"].forEach(ev=>$("#micBtn").addEventListener(ev,()=>Mic.holdEnd()));
+$("#liveBtn").onclick=()=>{ if(!Mic.supported){ toast("No speech recognition in this browser"); return; } Mic.toggleLive(); };
+$("#sayBtn").onclick=()=>{ SAY_ON=!SAY_ON; $("#sayBtn").setAttribute("aria-pressed",String(SAY_ON)); if(SAY_ON) say("read back on"); };
+$("#helpBtn").onclick=helpSheet;
+$("#ddText").onclick=()=>sitSheet("dist");
+$("#spotText").onclick=()=>sitSheet("spot");
+$("#penBtn").onclick=penSheet;
+$("#fixBtn").onclick=()=>{ const last=[...S.rows].reverse().find(r=>!r.pen); if(!last){ toast("Nothing to fix yet"); return; } fixPlay(last); };
+$("#posBtn").onclick=posSheet;
+$("#sumBtn").onclick=sumSheet;
+$("#undoBtn").onclick=()=>{ if(!HIST.length)return; const h=JSON.parse(HIST.pop()); S=h.s||h; EDIT=h.e===undefined?null:h.e;
+  buildLib(); buildSchedule(); save(); render(); toast(EDIT!==null?"Undone — still fixing play":"Undone"); };
+$("#expCsv").onclick=csv;
+$("#expJson").onclick=()=>dl("WC_"+(S.opp||"game").replace(/\W+/g,"_")+"_backup.json",JSON.stringify(S,null,1),"application/json");
+$("#impJson").onclick=()=>$("#fileIn").click();
+$("#fileIn").onchange=e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{ try{ snap(); S=JSON.parse(r.result); buildLib(); buildSchedule(); save(); render(); toast("Backup loaded"); }
+  catch(err){ toast("That file could not be read"); } }; r.readAsText(f); e.target.value=""; };
+$("#connectBtn").onclick=connectSheet;
+$("#newGame").onclick=()=>{
+  if(!confirm("Start a new game? The play log clears. Your call sheet stays.")) return;
+  const lib=S.lib; snap(); S=fresh(); S.lib=lib; buildLib(); buildSchedule(); save(); render(); toast("New game");
+};
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="/" && e.target.tagName!=="INPUT"){ e.preventDefault(); $("#cmdIn").focus(); return; }
+  if(e.target.tagName==="INPUT"||$("#mask").classList.contains("on")) return;
+  if(e.key>="0"&&e.key<="9" && !(Mic.supported && ["1","2","3"].includes(e.key))){ if(S.pad.d.length>=2)S.pad.d=e.key; else S.pad.d+=e.key; if(+S.pad.d>50)S.pad.d=e.key; render(); }
+  else if(e.key==="Backspace"){ S.pad.d=S.pad.d.slice(0,-1); render(); }
+  else if(e.key==="Enter"&&!$("#logBtn").disabled){ commit(); }
+  else if(e.key.toLowerCase()==="o"){ S.pad.side="own"; render(); }
+  else if(e.key.toLowerCase()==="t"){ S.pad.side="opp"; render(); }
+  else if(e.key.toLowerCase()==="p"){ penSheet(); }
+  else if(e.key.toLowerCase()==="f"){ const last=[...S.rows].reverse().find(r=>!r.pen); if(last) fixPlay(last); }
+});
+
+/* drag or tap the field to set the ball spot */
+(function dragBall(){
+  const t=$("#turf"); let on=false;
+  const yardAt=e=>{
+    const r=t.getBoundingClientRect();
+    return Math.max(1,Math.min(99,Math.round((e.clientX-r.left)/r.width*100)));
+  };
+  const apply=(y,live)=>{
+    S.spot=y;
+    if(S.down===1) S.toGain=Math.min(y+10,100);
+    else if(S.toGain<=y) S.toGain=Math.min(y+10,100);
+    $("#stripHint").textContent = live ? ("SET TO "+spotLabel(y)) : "DRAG THE BALL OR TAP THE FIELD TO SET THE SPOT";
+    render();
+  };
+  t.addEventListener("pointerdown",e=>{ on=true; t.classList.add("drag");
+    try{t.setPointerCapture(e.pointerId);}catch(_){} apply(yardAt(e),true); e.preventDefault(); });
+  t.addEventListener("pointermove",e=>{ if(on) apply(yardAt(e),true); });
+  const stop=()=>{ if(!on)return; on=false; t.classList.remove("drag");
+    $("#stripHint").textContent="DRAG THE BALL OR TAP THE FIELD TO SET THE SPOT"; save(); render(); };
+  t.addEventListener("pointerup",stop); t.addEventListener("pointercancel",stop);
+})();
+
+/* turf ticks */
+(function turf(){
+  const t=$("#turf");
+  for(let i=1;i<10;i++){ const d=document.createElement("div"); d.className="tick"; d.style.left=(i*10)+"%"; t.appendChild(d);
+    const n=document.createElement("div"); n.className="num"; n.style.left=(i*10)+"%";
+    n.textContent = i<5? i*10 : (i===5?50:(100-i*10)); t.appendChild(n); }
+})();
+
+/* ============ boot ============ */
+(async function boot(){
+  const saved=await Store.get();
+  S = saved && saved.rows ? Object.assign(fresh(),saved) : fresh();
+  if(!S.lib||!S.lib.plays) S.lib=JSON.parse(JSON.stringify(SEED));
+  if((S.lib.v||1)<SEED.v){
+    const seed=JSON.parse(JSON.stringify(SEED));
+    const known=new Set(seed.plays.map(p=>p.n).concat(RETIRED));
+    S.lib.plays.forEach(p=>{ if(!known.has(p.n)) seed.plays.push(p); });   // keep anything Coach added
+    (S.lib.forms||[]).forEach(f=>{ if(!seed.forms.includes(f)) seed.forms.push(f); });
+    S.lib=seed;
+  }
+  if(!S.lib.motions){ S.lib.motions=JSON.parse(JSON.stringify(SEED.motions));
+  }
+  S.pad=S.pad||{side:"opp",d:""}; S.pad.d=""; if(S.resTags) delete S.resTags;
+  buildLib(); buildSchedule(); render();
+  $("#syncChip").style.display="block";
+  if(Cloud.on){
+    setChip("ok");
+    await cloudPull();
+  } else {
+    $("#syncChip").textContent="NOT CONNECTED TO THE SHEET — tap Connect Sheet and paste your /exec link";
+    $("#syncChip").style.color="var(--gold)";
+  }
+  setInterval(()=>{ if(Cloud.on) cloudPull(); }, 7000);
+  $("#saveNote").textContent = Store.mode==="memory"
+    ? "This copy will not save on its own — use Save backup before you close it."
+    : "Saving automatically "+(Store.mode==="cloud"?"to your Claude account.":"on this device.");
+})();
+</script>
+</body>
+</html>
